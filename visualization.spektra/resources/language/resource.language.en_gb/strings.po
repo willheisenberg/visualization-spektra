@@ -1,0 +1,197 @@
+# Spektra – English texts
+msgid ""
+msgstr ""
+"Language: en_GB\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgctxt "#32000"
+msgid "General"
+msgstr ""
+
+msgctxt "#32001"
+msgid "Spektra on"
+msgstr ""
+
+msgctxt "#32002"
+msgid "Open automatically when music starts"
+msgstr ""
+
+msgctxt "#32003"
+msgid "Scene"
+msgstr ""
+
+msgctxt "#32004"
+msgid "Music intensity (%)"
+msgstr ""
+
+msgctxt "#32010"
+msgid "Eclipse"
+msgstr ""
+
+msgctxt "#32011"
+msgid "Flame (%)"
+msgstr ""
+
+msgctxt "#32012"
+msgid "Waves (%)"
+msgstr ""
+
+msgctxt "#32013"
+msgid "Free particles (%)"
+msgstr ""
+
+msgctxt "#32014"
+msgid "Corona (%)"
+msgstr ""
+
+msgctxt "#32015"
+msgid "Pixel size"
+msgstr ""
+
+msgctxt "#32016"
+msgid "Drop effect"
+msgstr ""
+
+msgctxt "#32020"
+msgid "0.5×"
+msgstr ""
+
+msgctxt "#32021"
+msgid "0.75×"
+msgstr ""
+
+msgctxt "#32022"
+msgid "1× (default)"
+msgstr ""
+
+msgctxt "#32023"
+msgid "1.5×"
+msgstr ""
+
+msgctxt "#32024"
+msgid "2×"
+msgstr ""
+
+msgctxt "#32025"
+msgid "3×"
+msgstr ""
+
+msgctxt "#32026"
+msgid "4×"
+msgstr ""
+
+msgctxt "#32027"
+msgid "6×"
+msgstr ""
+
+msgctxt "#32028"
+msgid "8×"
+msgstr ""
+
+msgctxt "#32030"
+msgid "Eclipse: mapping"
+msgstr ""
+
+msgctxt "#32031"
+msgid "Ring breathes (level)"
+msgstr ""
+
+msgctxt "#32032"
+msgid "Flame height (level)"
+msgstr ""
+
+msgctxt "#32033"
+msgid "Corona strength (level)"
+msgstr ""
+
+msgctxt "#32034"
+msgid "Dust breaks free (level)"
+msgstr ""
+
+msgctxt "#32035"
+msgid "Flow & shimmer (level)"
+msgstr ""
+
+msgctxt "#32036"
+msgid "Wave (hit)"
+msgstr ""
+
+msgctxt "#32037"
+msgid "Flame burst all around (hit)"
+msgstr ""
+
+msgctxt "#32038"
+msgid "Flame jet (hit)"
+msgstr ""
+
+msgctxt "#32039"
+msgid "Streamer + arc (hit)"
+msgstr ""
+
+msgctxt "#32040"
+msgid "Dust burst (hit)"
+msgstr ""
+
+msgctxt "#32050"
+msgid "Bass (25–120 Hz)"
+msgstr ""
+
+msgctxt "#32051"
+msgid "Lows (120–500 Hz)"
+msgstr ""
+
+msgctxt "#32052"
+msgid "Mids (500 Hz–3 kHz)"
+msgstr ""
+
+msgctxt "#32053"
+msgid "Highs (3–16 kHz)"
+msgstr ""
+
+msgctxt "#32060"
+msgid "Performance"
+msgstr ""
+
+msgctxt "#32061"
+msgid "Particle limit"
+msgstr ""
+
+msgctxt "#32080"
+msgid "Turn Spektra on"
+msgstr ""
+
+msgctxt "#32081"
+msgid "Turn Spektra off"
+msgstr ""
+
+msgctxt "#32082"
+msgid "Settings"
+msgstr ""
+
+msgctxt "#32083"
+msgid "Status"
+msgstr ""
+
+msgctxt "#32084"
+msgid "Open menu"
+msgstr ""
+
+msgctxt "#32085"
+msgid "Reset everything to default"
+msgstr ""
+
+msgctxt "#32090"
+msgid "Unknown command."
+msgstr ""
+
+msgctxt "#32091"
+msgid "Unknown setting."
+msgstr ""
+
+msgctxt "#32092"
+msgid "Invalid value."
+msgstr ""
+
+msgctxt "#32093"
+msgid "The Spektra service is not ready yet. Please wait."
+msgstr ""

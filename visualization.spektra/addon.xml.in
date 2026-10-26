@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<addon id="visualization.spektra" version="0.1.0" name="Spektra" provider-name="tesla">
+  <requires>@ADDON_DEPENDS@
+    <import addon="xbmc.python" version="3.0.1"/>
+  </requires>
+  <extension point="xbmc.player.musicviz" library_@PLATFORM@="@LIBRARY_FILENAME@"/>
+  <extension point="xbmc.python.script" library="default.py">
+    <provides>executable</provides>
+  </extension>
+  <extension point="xbmc.service" library="service.py"/>
+  <extension point="xbmc.addon.metadata">
+    <platform>@PLATFORM@</platform>
+    <license>GPL-2.0-or-later</license>
+    <summary lang="de_DE">Audio-reaktive Szenen zur Musik</summary>
+    <summary lang="en_GB">Audio-reactive scenes for your music</summary>
+    <description lang="de_DE">Übersetzt Bass, Tiefen, Mitten und Höhen in lebendige Animationen. Erste Szene: Eclipse, eine digitale Sonnenfinsternis aus Pixelstaub.</description>
+    <description lang="en_GB">Turns bass, lows, mids and highs into living animations. First scene: Eclipse, a digital solar eclipse made of pixel dust.</description>
+    <assets>
+      <icon>resources/icon.png</icon>
+      <fanart>resources/fanart.jpg</fanart>
+    </assets>
+  </extension>
+</addon>

@@ -1,0 +1,642 @@
+<h2>Dune v14: Standard-Markierungen an den Reglern</h2>
+<p class="subtitle">Basis v13. Jeder Regler zeigt mit einer goldenen Marke, wo der Standard liegt. Doppelklick auf einen Regler (oder Klick auf ↺ daneben) springt zurück auf den Standard.</p>
+
+<div style="display:flex;gap:.6rem;flex-wrap:wrap;margin:.6rem 0">
+  <label class="mock-button" style="cursor:pointer">Musikdatei wählen<input id="au-file" type="file" accept="audio/*,video/*,.mp4,.m4a,.mkv,.webm,.mov" style="display:none"></label>
+  <button class="mock-button" id="au-mic" type="button">Mikrofon</button>
+  <button class="mock-button" id="au-sim" type="button">Testsong (Simulation)</button>
+</div>
+
+<div style="display:grid;grid-template-columns:auto 1fr auto;gap:.35rem .8rem;align-items:center;margin:.4rem 0 .8rem;font-size:.9rem">
+  <b>Musik</b><input id="m-master" type="range" min="1" max="100" value="70" data-default="70"><span id="m-master-v" style="min-width:3.5em;text-align:right">70 %</span>
+  <span></span>
+  <span style="display:flex;gap:.4rem;flex-wrap:wrap">
+    <button class="mock-button" type="button" data-set="1">1 %</button><button class="mock-button" type="button" data-set="10">10 %</button>
+    <button class="mock-button" type="button" data-set="25">25 %</button><button class="mock-button" type="button" data-set="50">50 %</button>
+    <button class="mock-button" type="button" data-set="75">75 %</button><button class="mock-button" type="button" data-set="100">100 %</button>
+    <button class="mock-button" type="button" id="m-sweep">Durchlauf 1→100 % (60 s)</button>
+  </span><span></span>
+  <span>Flamme</span><input class="m-el" data-el="F" type="range" min="0" max="100" value="100" data-default="100"><span>100 %</span>
+  <span>Wellen</span><input class="m-el" data-el="W" type="range" min="0" max="100" value="100" data-default="100"><span>100 %</span>
+  <span>Freie Partikel</span><input class="m-el" data-el="P" type="range" min="0" max="100" value="100" data-default="100"><span>100 %</span>
+  <span>Corona</span><input class="m-el" data-el="C" type="range" min="0" max="100" value="100" data-default="100"><span>100 %</span>
+  <b>Pixelgröße</b><input id="px-size" type="range" min="0" max="8" step="1" value="2" data-default="2"><span id="px-size-v">1×</span>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header" id="dune-hud">Testsong</div>
+  <div class="mockup-body" style="padding:0"><canvas id="cv-dune" width="1280" height="720" style="width:100%;display:block;background:#000"></canvas></div>
+</div>
+<video id="au-el" controls playsinline style="width:100%;max-height:60px;margin-top:.6rem;display:none;background:#000"></video>
+<p id="au-msg" style="color:#e88;font-size:.85rem;margin:.3rem 0 0"></p>
+
+<details id="routing-box" style="margin-top:1rem">
+  <summary style="cursor:pointer;font-weight:600">Zuordnung anpassen (optional)</summary>
+  <p style="font-size:.85rem;margin:.5rem 0">Häkchen setzen: Zeilen sind die Bänder, Spalten die Effekte. <b>Pegel</b>-Effekte folgen der Lautstärke des Bandes laufend; <b>Anschlag</b>-Effekte feuern bei jedem Schlag. Steuern mehrere Bänder denselben Effekt, zählt das jeweils stärkste.</p>
+  <div style="overflow-x:auto"><table id="routing" style="border-collapse:collapse;font-size:.85rem;min-width:640px"></table></div>
+  <div style="display:flex;gap:.6rem;align-items:center;margin-top:.6rem;flex-wrap:wrap">
+    <label><input type="checkbox" id="drop-on" checked> Drop-Effekt (Kick nach Pause löst alles zugleich aus)</label>
+    <button class="mock-button" type="button" id="routing-reset">Standard wiederherstellen</button>
+  </div>
+</details>
+
+<div id="bandpanel" style="display:grid;grid-template-columns:7.5em 9em 1fr 1.2em 2fr;gap:.35rem .7rem;align-items:center;font-size:.85rem;margin-top:.8rem"></div>
+
+<script>
+(function () {
+  const TAU = Math.PI * 2;
+  const clamp01 = v => Math.min(1, Math.max(0, v));
+
+  // ---- Regler ----
+  let M = 0.7, sweepT0 = -1;
+  const EL = { F: 1, W: 1, P: 1, C: 1 };
+  const mIn = document.getElementById('m-master'), mOut = document.getElementById('m-master-v');
+  const setM = v => { M = Math.max(0.01, v / 100); mIn.value = Math.round(M * 100); mOut.textContent = Math.round(M * 100) + ' %'; };
+  mIn.addEventListener('input', () => { sweepT0 = -1; setM(+mIn.value); });
+  document.querySelectorAll('[data-set]').forEach(b => b.addEventListener('click', () => { sweepT0 = -1; setM(+b.dataset.set); }));
+  document.getElementById('m-sweep').addEventListener('click', () => { sweepT0 = performance.now() / 1000; });
+  document.querySelectorAll('.m-el').forEach(el => el.addEventListener('input', () => { EL[el.dataset.el] = el.value / 100; (el._val || el.nextElementSibling).textContent = el.value + ' %'; }));
+
+  const WHITE = [250, 250, 255], SILVER = [222, 230, 242], GOLD = [226, 182, 110], EMBER = [214, 96, 46], RUBY = [190, 22, 48];
+  const rgba = (c, a) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a})`;
+  const mix = (c1, c2, k) => c1.map((v, i) => v + (c2[i] - v) * k);
+  const STOPS = [WHITE, SILVER, GOLD, EMBER, RUBY];
+  const fireCol = h => { h = Math.min(0.999, Math.max(0, h)) * (STOPS.length - 1); const i = Math.floor(h); return mix(STOPS[i], STOPS[i + 1], h - i); };
+
+  // =====================================================================
+  //  Audio-Analyse: vier Bänder, je Pegel (0..1) und Anschläge (Onsets)
+  // =====================================================================
+  const BANDS = [
+    { key: 'bass', name: 'Bass',   hz: [25, 120],    col: '#e8a23c', role: 'Kick → Welle aus dem Ring. Der Ring atmet mit.', rel: 0.12, ratio: 1.45, cool: 0.22 },
+    { key: 'low',  name: 'Tiefen', hz: [120, 500],   col: '#d9672e', role: 'Bassline → Höhe der durchgehenden Flamme. Anschläge: einzelne Stichflammen.', rel: 0.25, ratio: 1.35, cool: 0.15 },
+    { key: 'mid',  name: 'Mitten', hz: [500, 3000],  col: '#f2d9a6', role: 'Melodie, Akkorde, Stimme → Corona und Flammenstoß rundum. Die Tonhöhe bestimmt, WO am Ring Streamer und Bögen entstehen.', rel: 0.7, ratio: 1.3, cool: 0.3 },
+    { key: 'high', name: 'Höhen',  hz: [3000, 16000], col: '#bcd4f5', role: 'Hi-Hats, Snares, Glanz → Staub löst sich von der Sonne, Strömung und Flimmern werden schneller.', rel: 0.08, ratio: 1.5, cool: 0.07 },
+  ];
+  const A = { lv: {}, on: {}, env: {}, centroid: 0.5, loud: 0, drop: 0 };
+  for (const b of BANDS) { A.lv[b.key] = 0; A.on[b.key] = 0; A.env[b.key] = 0; }
+  const NB = 32, lvl = new Float32Array(NB);                       // feines Spektrum für die Unregelmäßigkeit der Flamme
+  let mode = 'sim';
+
+  // --- echte Musik ---
+  let ctx = null, analyser = null, bins = null, srcNode = null;
+  const st = {}; for (const b of BANDS) st[b.key] = { long: 0, avg: 0, prev: 0, last: -9 };
+  const nbPeak = new Float32Array(NB).fill(0.05);
+  let loudAvg = 0, loudMax = 0.05, bassHist = 0;
+  function ensureCtx() {
+    if (!ctx) { ctx = new AudioContext(); analyser = ctx.createAnalyser(); analyser.fftSize = 4096; analyser.smoothingTimeConstant = 0.5; bins = new Uint8Array(analyser.frequencyBinCount);
+      const lo = analyser.minDecibels, hi = analyser.maxDecibels; for (let i = 0; i < 256; i++) LIN[i] = i === 0 ? 0 : Math.pow(10, ((lo + (hi - lo) * i / 255) - hi) / 20); }
+    if (ctx.state === 'suspended') ctx.resume();
+  }
+  // Byte-Werte sind Dezibel (min..max dB auf 0..255); zurück in lineare Amplitude, damit Dynamik sichtbar wird
+  const LIN = new Float32Array(256);
+  function bandEnergy(lo, hi, hz) {
+    let s = 0, n = 0;
+    for (let b = Math.max(1, Math.floor(lo / hz)); b <= Math.ceil(hi / hz) && b < bins.length; b++) { const v = LIN[bins[b]]; s += v * v; n++; }
+    return n ? Math.sqrt(s / n) : 0;
+  }
+  function analyse(t, dt) {
+    analyser.getByteFrequencyData(bins);
+    const hz = ctx.sampleRate / analyser.fftSize, g = Math.pow(M, 0.6);
+    let loud = 0;
+    for (const b of BANDS) {
+      const s = st[b.key], e = bandEnergy(b.hz[0], b.hz[1], hz);
+      loud += e;
+      // Pegel relativ zum eigenen Durchschnitt der letzten ~8 s: üblich ≈ 0,6, lauter -> 1, leiser -> weniger
+      if (s.long === 0) s.long = e;
+      s.long += (e - s.long) * (1 - Math.exp(-dt / (e > s.long * 2.5 ? 0.8 : 8)));   // weit darunter: schnell aufholen
+      const norm = e < 1e-4 ? 0 : clamp01(e / (s.long * 1.7 + 1e-4));
+      const tgt = Math.pow(norm, 1.3) * g;
+      A.lv[b.key] += (tgt - A.lv[b.key]) * (tgt > A.lv[b.key] ? 0.6 : 1 - Math.exp(-dt / b.rel));
+      // Anschlag: Energie springt deutlich über ihren gleitenden Mittelwert
+      A.on[b.key] = 0;
+      if (e > s.avg * b.ratio && e > s.long * 0.5 && e > s.prev && t - s.last > b.cool) {
+        s.last = t; A.on[b.key] = clamp01((e / Math.max(s.avg, 1e-4) - 1) * 0.9) * M;
+      }
+      s.avg += (e - s.avg) * (1 - Math.exp(-dt / (b.key === 'mid' ? 0.6 : 0.3)));
+      s.prev = e;
+    }
+    // Tonhöhen-Schwerpunkt in den Mitten (0 = tief, 1 = hoch, logarithmisch)
+    let ws = 0, wsum = 0;
+    for (let b = Math.floor(500 / hz); b <= Math.ceil(3000 / hz); b++) { const v = bins[b] / 255; ws += v * v * Math.log(b * hz / 500) / Math.log(6); wsum += v * v; }
+    if (wsum > 0.01) A.centroid += (clamp01(ws / wsum) - A.centroid) * 0.15;
+    // feines Spektrum
+    for (let i = 0; i < NB; i++) {
+      const lo = 30 * Math.pow(14000 / 30, i / NB), hi = 30 * Math.pow(14000 / 30, (i + 1) / NB);
+      const e = bandEnergy(lo, hi, hz);
+      if (nbPeak[i] === 0.05) nbPeak[i] = e + 1e-4;
+      nbPeak[i] += (e - nbPeak[i]) * (1 - Math.exp(-dt / 8));
+      const tgt = (e < 1e-4 ? 0 : Math.pow(clamp01(e / (nbPeak[i] * 1.7 + 1e-4)), 1.4)) * g;
+      lvl[i] += (tgt - lvl[i]) * (tgt > lvl[i] ? 0.6 : 0.12);
+    }
+    // Gesamtintensität relativ zum lautesten Moment der letzten ~30 s
+    loud /= BANDS.length;
+    loudAvg += (loud - loudAvg) * (1 - Math.exp(-dt / 1.5));
+    loudMax = Math.max(loudAvg, loudMax * Math.exp(-dt / 40), 1e-3);
+    A.loud += (M * Math.pow(clamp01(loudAvg / loudMax), 2) - A.loud) * (1 - Math.exp(-dt / 0.8));
+    // Drop: kräftiger Kick nach einer Phase ohne Bass
+    A.drop = 0;
+    if (A.on.bass > 0.35 * M && bassHist < 0.15 && loudAvg > 0.5 * loudMax) A.drop = 1;
+    bassHist += (A.lv.bass - bassHist) * (1 - Math.exp(-dt / 3));
+  }
+
+  // --- Testsong: 124 BPM, 32-Takt-Zyklus mit Intro, Groove, Breakdown und Drop ---
+  let simBeat = -1, simStep = -1, simChord = -1;
+  function simulate(t, dt) {
+    const g = Math.pow(M, 0.6), spb = 60 / 124, beat = t / spb, bar = Math.floor(beat / 4) % 16, inBar = beat % 4;
+    // Abschnitte: 0-3 Intro, 4-9 Groove, 10-13 Breakdown, 14-15 Groove (Drop bei Takt 14)
+    const sec = bar < 4 ? 'intro' : bar < 10 ? 'groove' : bar < 14 ? 'break' : 'groove';
+    const kickOn = sec === 'groove' || (sec === 'intro' && bar >= 2);
+    for (const b of BANDS) A.on[b.key] = 0;
+    A.drop = 0;
+    const bi = Math.floor(beat);
+    if (bi !== simBeat) {
+      simBeat = bi;
+      if (kickOn) { A.on.bass = (0.65 + 0.3 * Math.random()) * M; if (bar === 14 && bi % 64 === 56) A.drop = 1; }
+    }
+    const step = Math.floor(beat * 2);                               // Achtel
+    if (step !== simStep) {
+      simStep = step;
+      if (step % 2 === 1 && sec !== 'break') A.on.high = (0.4 + 0.4 * Math.random()) * M;   // Offbeat-Hats
+      if (sec === 'groove' && Math.random() < 0.35) A.on.low = (0.3 + 0.4 * Math.random()) * M;
+    }
+    const chord = Math.floor(beat / 8);                              // Akkordwechsel alle 2 Takte
+    if (chord !== simChord) { simChord = chord; if (sec !== 'intro') A.on.mid = (0.5 + 0.4 * Math.random()) * M; }
+    const kickEnv = kickOn ? Math.exp(-(beat % 1) * 6) : 0;
+    const tgt = {
+      bass: kickEnv * 0.9,
+      low: sec === 'groove' ? 0.55 + 0.35 * Math.abs(Math.sin(beat * Math.PI * 0.5)) : sec === 'intro' ? 0.25 : 0.1,
+      mid: sec === 'break' ? 0.55 + 0.4 * ((bar - 10 + inBar / 4) / 4) : sec === 'groove' ? 0.45 + 0.15 * Math.sin(t * 0.7) : 0.15,
+      high: sec === 'break' ? 0.1 : 0.35 + 0.35 * Math.exp(-((beat * 2) % 1) * 8),
+    };
+    for (const b of BANDS) { const v = tgt[b.key] * g; A.lv[b.key] += (v - A.lv[b.key]) * (v > A.lv[b.key] ? 0.5 : 1 - Math.exp(-dt / b.rel)); }
+    A.centroid = 0.5 + 0.4 * Math.sin(t * 0.23) * Math.cos(t * 0.11);
+    const loudT = sec === 'break' ? 0.45 : sec === 'intro' ? 0.4 : 0.9;
+    A.loud += (M * loudT - A.loud) * (1 - Math.exp(-dt / 1.2));
+    for (let i = 0; i < NB; i++) {
+      const f = i / (NB - 1), lv = f < 0.18 ? A.lv.bass : f < 0.4 ? A.lv.low : f < 0.72 ? A.lv.mid : A.lv.high;
+      const v = lv * (0.6 + 0.4 * Math.sin(t * (1 + f * 3) + i * 1.7)) + 0.08 * Math.random() * lv;
+      lvl[i] += (v - lvl[i]) * 0.3;
+    }
+  }
+
+  // ---- Quellen ----
+  const hud = document.getElementById('dune-hud'), audioEl = document.getElementById('au-el'), msg = document.getElementById('au-msg');
+  audioEl.addEventListener('error', () => {
+    const codes = { 1: 'abgebrochen', 2: 'Netzwerkfehler', 3: 'Dekodieren fehlgeschlagen', 4: 'Format oder Codec wird von diesem Browser nicht unterstützt' };
+    msg.textContent = 'Datei lässt sich nicht abspielen: ' + (codes[audioEl.error && audioEl.error.code] || 'unbekannter Fehler') + '. Tipp: als MP3 umwandeln.';
+  });
+  function loadFile(f) {
+    if (!f) return;
+    msg.textContent = '';
+    ensureCtx();
+    audioEl.src = URL.createObjectURL(f); audioEl.style.display = 'block';
+    if (!audioEl._node) audioEl._node = ctx.createMediaElementSource(audioEl);
+    if (srcNode && srcNode !== audioEl._node) srcNode.disconnect();
+    srcNode = audioEl._node; srcNode.connect(analyser); analyser.connect(ctx.destination);
+    mode = 'file'; hud.dataset.src = f.name;
+    audioEl.play().catch(err => { msg.textContent = 'Abspielen nicht möglich: ' + err.message; });
+  }
+  // AudioContext darf erst nach einer Nutzeraktion laufen: bei jedem Play und Klick wieder anwerfen
+  audioEl.addEventListener('play', () => { if (ctx && ctx.state !== 'running') ctx.resume(); });
+  // Nach Springen im Song neu einpegeln
+  audioEl.addEventListener('seeked', () => { for (const k in st) st[k].long = 0; nbPeak.fill(0.05); });
+  document.addEventListener('pointerdown', () => { if (ctx && ctx.state !== 'running') ctx.resume(); });
+  document.getElementById('au-file').addEventListener('change', e => loadFile(e.target.files[0]));
+  const cvDrop = document.getElementById('cv-dune');
+  ['dragover', 'drop'].forEach(ev => cvDrop.addEventListener(ev, e => { e.preventDefault(); if (ev === 'drop') loadFile(e.dataTransfer.files[0]); }));
+  document.getElementById('au-mic').addEventListener('click', async () => {
+    try {
+      ensureCtx();
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+      if (srcNode) srcNode.disconnect();
+      try { analyser.disconnect(); } catch (_) {}
+      audioEl.pause();
+      srcNode = ctx.createMediaStreamSource(stream); srcNode.connect(analyser);
+      mode = 'mic'; hud.dataset.src = 'Mikrofon';
+    } catch (err) { msg.textContent = 'Mikrofon nicht verfügbar: ' + err.message; }
+  });
+  document.getElementById('au-sim').addEventListener('click', () => { audioEl.pause(); mode = 'sim'; });
+
+  // ---- Bandanzeige ----
+  const panel = document.getElementById('bandpanel'), meter = {};
+  panel.innerHTML = '<b>Band</b><b>Bereich</b><b>Pegel</b><b></b><b>steuert</b>';
+  for (const b of BANDS) {
+    const bar = document.createElement('div'); bar.style.cssText = 'height:8px;background:rgba(128,128,128,.25);border-radius:4px;overflow:hidden';
+    const fill = document.createElement('div'); fill.style.cssText = `height:100%;width:0;background:${b.col}`; bar.appendChild(fill);
+    const dot = document.createElement('div'); dot.style.cssText = `width:12px;height:12px;border-radius:50%;background:${b.col};opacity:0`;
+    const name = document.createElement('b'); name.textContent = b.name; name.style.color = b.col;
+    const range = document.createElement('span'); range.textContent = b.hz[0] >= 1000 ? `${b.hz[0] / 1000}–${b.hz[1] / 1000} kHz` : b.hz[1] >= 1000 ? `${b.hz[0]} Hz–${b.hz[1] / 1000} kHz` : `${b.hz[0]}–${b.hz[1]} Hz`;
+    const role = document.createElement('span'); role.textContent = b.role;
+    panel.append(name, range, bar, dot, role);
+    meter[b.key] = { fill, dot, role };
+  }
+  {
+    const name = document.createElement('b'); name.textContent = 'Drop';
+    const range = document.createElement('span'); range.textContent = 'Kick nach Pause';
+    const bar = document.createElement('div');
+    const dot = document.createElement('div'); dot.style.cssText = 'width:12px;height:12px;border-radius:50%;background:#fff;opacity:0';
+    const role = document.createElement('span'); role.textContent = 'Alles zugleich: großer Flammenring, alle Streamer, Staubexplosion, Doppelwelle.';
+    panel.append(name, range, bar, dot, role);
+    meter.drop = { dot, role };
+  }
+
+  // ---- Zuordnung: Effekt -> Menge von Bändern ----
+  const TARGETS = [
+    { key: 'breath',   kind: 'lv', name: 'Ring atmet' },
+    { key: 'flame',    kind: 'lv', name: 'Flammenhöhe' },
+    { key: 'corona',   kind: 'lv', name: 'Corona-Stärke' },
+    { key: 'free',     kind: 'lv', name: 'Staub löst sich' },
+    { key: 'flow',     kind: 'lv', name: 'Strömung & Flimmern' },
+    { key: 'wave',     kind: 'on', name: 'Welle' },
+    { key: 'burst',    kind: 'on', name: 'Flammenstoß rundum' },
+    { key: 'jet',      kind: 'on', name: 'Stichflamme' },
+    { key: 'streamer', kind: 'on', name: 'Streamer + Bogen' },
+    { key: 'dust',     kind: 'on', name: 'Staubausbruch' },
+  ];
+  const DEFAULT_ROUTE = { breath: ['bass'], flame: ['low'], corona: ['mid'], free: ['high'], flow: ['high'],
+                          wave: ['bass'], burst: ['mid'], jet: ['low'], streamer: ['mid'], dust: ['high'] };
+  let route = JSON.parse(JSON.stringify(DEFAULT_ROUTE)), dropOn = true;
+  try { const saved = JSON.parse(localStorage.getItem('eclipse.route') || 'null'); if (saved && saved.route) { route = saved.route; dropOn = saved.dropOn !== false; } } catch (_) {}
+  for (const k in DEFAULT_ROUTE) if (!Array.isArray(route[k])) route[k] = DEFAULT_ROUTE[k].slice();
+  const saveRoute = () => { try { localStorage.setItem('eclipse.route', JSON.stringify({ route, dropOn })); } catch (_) {} };
+  const lvOf = k => { let v = 0; for (const b of route[k] || []) v = Math.max(v, A.lv[b]); return v; };
+  const onOf = k => { let v = 0; for (const b of route[k] || []) v = Math.max(v, A.on[b]); return v; };
+  const table = document.getElementById('routing'), dropBox = document.getElementById('drop-on');
+  function buildRouting() {
+    const th = 'padding:.3rem .5rem;border-bottom:1px solid rgba(128,128,128,.35);text-align:center;font-weight:600';
+    const td = 'padding:.3rem .5rem;text-align:center;border-bottom:1px solid rgba(128,128,128,.15)';
+    let html = `<tr><th style="${th}"></th><th colspan="5" style="${th}">Pegel (laufend)</th><th colspan="5" style="${th}">Anschlag (Schlag)</th></tr><tr><th style="${th}">Band</th>`;
+    for (const tg of TARGETS) html += `<th style="${th};font-weight:400">${tg.name}</th>`;
+    html += '</tr>';
+    for (const b of BANDS) {
+      html += `<tr><td style="${td};text-align:left;color:${b.col};font-weight:600">${b.name}</td>`;
+      for (const tg of TARGETS) html += `<td style="${td}"><input type="checkbox" data-band="${b.key}" data-tg="${tg.key}" ${route[tg.key].includes(b.key) ? 'checked' : ''} style="accent-color:${b.col}"></td>`;
+      html += '</tr>';
+    }
+    table.innerHTML = html;
+    dropBox.checked = dropOn;
+    table.querySelectorAll('input').forEach(cb => cb.addEventListener('change', () => {
+      const list = route[cb.dataset.tg], b = cb.dataset.band;
+      if (cb.checked) { if (!list.includes(b)) list.push(b); } else route[cb.dataset.tg] = list.filter(x => x !== b);
+      saveRoute(); updateRoles();
+    }));
+  }
+  dropBox.addEventListener('change', () => { dropOn = dropBox.checked; saveRoute(); updateRoles(); });
+  document.getElementById('routing-reset').addEventListener('click', () => { route = JSON.parse(JSON.stringify(DEFAULT_ROUTE)); dropOn = true; saveRoute(); buildRouting(); updateRoles(); });
+  // Spalte „steuert“ in der Live-Tabelle aus der aktuellen Zuordnung ableiten
+  function updateRoles() {
+    for (const b of BANDS) {
+      const lv = TARGETS.filter(tg => tg.kind === 'lv' && route[tg.key].includes(b.key)).map(tg => tg.name);
+      const on = TARGETS.filter(tg => tg.kind === 'on' && route[tg.key].includes(b.key)).map(tg => tg.name);
+      meter[b.key].role.textContent = (lv.length ? 'Pegel → ' + lv.join(', ') : '') + (lv.length && on.length ? ' · ' : '') + (on.length ? 'Anschlag → ' + on.join(', ') : '') || '— (nichts zugeordnet)';
+    }
+    meter.drop.role.textContent = dropOn ? 'Alles zugleich: großer Flammenring, alle Streamer, Staubexplosion, Doppelwelle.' : '— (aus)';
+  }
+
+  buildRouting(); updateRoles();
+  const sample = (arr, f) => { f = Math.min(1, Math.max(0, f)) * (NB - 1); const i = Math.floor(f), k = f - i; return arr[i] * (1 - k) + arr[Math.min(NB - 1, i + 1)] * k; };
+  const freqAt = (a, t) => (0.5 + 0.5 * Math.sin(a * 3 + t * 0.07) * Math.cos(a * 5 - t * 0.05 + 1.3));
+  // Tonhöhe -> Stelle am Ring: tief = unten, hoch = oben, zufällig links oder rechts
+  const melodyAngle = c => { const a = Math.PI / 2 - c * Math.PI; return Math.random() < 0.5 ? a : Math.PI - a; };
+
+  // ---- Flammen und Pixel ----
+  const px = [], MAXPX = 42000;
+  const CELLS = 240, boost = new Float32Array(CELLS), ember = new Float32Array(CELLS), heat = new Float32Array(CELLS);
+  const ph = Array.from({ length: CELLS }, () => Math.random() * TAU);
+  for (let i = 0; i < CELLS; i++) ember[i] = Math.random();
+  function pulseProfile(strength, nMin = 3, nMax = 7, wMax = 0.5, floor = 0.15) {
+    const bumps = [];
+    for (let k = 0, n = nMin + Math.floor(Math.random() * (nMax - nMin + 1)); k < n; k++) bumps.push({ a: Math.random() * TAU, w: 0.06 + Math.random() * wMax, h: 0.4 + Math.random() * 0.9 });
+    for (let i = 0; i < CELLS; i++) {
+      const a = i / CELLS * TAU;
+      let v = floor * (0.6 + Math.random());
+      for (const b of bumps) { const d = Math.abs((((a - b.a + Math.PI) % TAU) + TAU) % TAU - Math.PI); v += b.h * Math.exp(-(d * d) / (2 * b.w * b.w)); }
+      boost[i] = Math.max(boost[i], v * strength);
+    }
+  }
+
+  const cv = document.getElementById('cv-dune'), x = cv.getContext('2d'), W = 1280, H = 720;
+  // ---- Pixelgröße: P in logischen Pixeln; Q = interne Auflösung, B = Blockgröße in Gerätepixeln ----
+  const PSTEPS = [0.5, 0.75, 1, 1.5, 2, 3, 4, 6, 8];
+  let P = 1, Q = 1, B = 1, BW = W, BH = H, pxGain = 1;
+  const glow = document.createElement('canvas'); glow.width = W / 4; glow.height = H / 4; const gx = glow.getContext('2d');
+  let prev = performance.now(), R = 0, beatT = -9, flowT = 0, shimT = 0;
+  function flow(u, v, t) {
+    const a1 = u * 1.7 + t * 0.35, b1 = v * 1.3 - t * 0.27;
+    const a2 = (u * 0.9 - v * 1.1) * 1.6 + t * 0.5;
+    const a3 = u * 3.1 + t * 0.8, b3 = v * 2.7 - t * 0.6;
+    const dpu = 1.7 * Math.cos(a1) * Math.cos(b1) + 0.6 * 1.44 * Math.cos(a2) + 0.35 * 3.1 * Math.cos(a3) * Math.sin(b3);
+    const dpv = -1.3 * Math.sin(a1) * Math.sin(b1) - 0.6 * 1.76 * Math.cos(a2) + 0.35 * 2.7 * Math.sin(a3) * Math.cos(b3);
+    return [dpv, -dpu];
+  }
+  let img, buf;
+  const layer = document.createElement('canvas'), lx = layer.getContext('2d');
+  function setPixel(step) {
+    P = PSTEPS[step];
+    Q = P < 1 ? 1 / P : (Number.isInteger(P) ? 1 : 2);
+    B = Math.max(1, Math.round(P * Q));
+    BW = Math.round(W * Q); BH = Math.round(H * Q);
+    cv.width = BW; cv.height = BH;
+    layer.width = BW; layer.height = BH;
+    img = x.createImageData(BW, BH); buf = img.data;
+    pxGain = Math.pow(P, P > 1 ? -1.1 : -0.8);                     // Helligkeit ausgleichen
+    document.getElementById('px-size-v').textContent = String(P).replace('.', ',') + '×';
+    document.getElementById('px-size').value = step;
+    try { localStorage.setItem('eclipse.pixel', step); } catch (_) {}
+  }
+  let pxStep = 2;
+  try { const v = +localStorage.getItem('eclipse.pixel'); if (v >= 0 && v < PSTEPS.length && localStorage.getItem('eclipse.pixel') !== null) pxStep = v; } catch (_) {}
+  setPixel(pxStep);
+  document.getElementById('px-size').addEventListener('input', e => setPixel(+e.target.value));
+  const RGB = Array.from({ length: 64 }, (_, i) => fireCol(i / 63));
+  const waves = [];
+
+  // ---- Corona ----
+  const CS = 2, CW = W / CS, CH = H / CS;
+  const cacc = new Float32Array(CW * CH * 3), cimg = x.createImageData(CW, CH), cdata = cimg.data;
+  const clayer = document.createElement('canvas'); clayer.width = CW; clayer.height = CH; const clx = clayer.getContext('2d');
+  const AMBER = [255, 196, 84], BEIGE = [236, 214, 182], ICE = [184, 208, 244];
+  const cor = [];
+  let corLvl = 0;
+  const streamers = [];
+  function reseed(s, a) { s.a = a ?? Math.random() * TAU; s.w = 0.04 + Math.random() * 0.16; s.warm = Math.random(); s.len = 1.3 + Math.random() * 2.6; s.curve = (Math.random() - 0.5) * 0.25; }
+  for (let i = 0; i < 9; i++) { const s = { lvl: 0 }; reseed(s); streamers.push(s); }
+  const loops = [];
+  const gauss = () => (Math.random() + Math.random() + Math.random() - 1.5) / 1.5;
+  function addSoft(px_, py_, c, al) {
+    const ix = (px_ / CS) | 0, iy = (py_ / CS) | 0;
+    if (ix < 0 || iy < 0 || ix >= CW || iy >= CH) return;
+    al *= EL.C; const o = (iy * CW + ix) * 3; cacc[o] += c[0] * al; cacc[o + 1] += c[1] * al; cacc[o + 2] += c[2] * al;
+  }
+  // Ein Staubkorn als Block von (B·size) Gerätepixeln, auf das Blockraster eingerastet
+  function plot(lx_, ly_, size, c, al) {
+    const s = B * size, ix = Math.floor(lx_ * Q / B) * B, iy = Math.floor(ly_ * Q / B) * B;
+    if (ix < 0 || iy < 0 || ix >= BW || iy >= BH) return;
+    al *= pxGain;
+    const r = c[0] * al, g = c[1] * al, bl = c[2] * al;
+    for (let sy = 0; sy < s; sy++) {
+      if (iy + sy >= BH) break;
+      let o = ((iy + sy) * BW + ix) * 4;
+      for (let sx = 0; sx < s && ix + sx < BW; sx++, o += 4) { buf[o] += r; buf[o + 1] += g; buf[o + 2] += bl; buf[o + 3] = 255; }
+    }
+  }
+  function addSharp(px_, py_, c, al) { plot(px_, py_, 1, c, al * EL.C); }
+  const spawnN = r => Math.floor(r) + (Math.random() < r % 1 ? 1 : 0);
+  // Höhen-Anschlag: Staub reißt an einigen Stellen gleichzeitig ab
+  function releaseDust(strength, cx, cy, spots) {
+    if (EL.P === 0) return;
+    for (let s = 0; s < spots; s++) {
+      const a0 = Math.random() * TAU, n = Math.floor(60 + 260 * strength) * EL.P;
+      for (let j = 0; j < n && px.length < MAXPX; j++) {
+        const a = a0 + gauss() * 0.08, r0 = R * 1.01, sp = R * (0.4 + Math.random() * 0.9) * (0.6 + strength);
+        const life = 2 + Math.random() * 3;
+        px.push({ x: cx + Math.cos(a) * r0, y: cy + Math.sin(a) * r0, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life, max: life, free: true, size: Math.random() < 0.9 ? 1 : 2 });
+      }
+    }
+  }
+
+  function frame(now) {
+    const t = now / 1000, dtReal = Math.min(1, (now - prev) / 1000), dt = Math.min(0.1, dtReal); prev = now;
+    if (sweepT0 >= 0) { const k = (t - sweepT0) / 60; if (k >= 1) sweepT0 = -1; setM(1 + 99 * Math.min(1, k)); }
+    const live = mode !== 'sim' && analyser;
+    if (live) analyse(t, dtReal); else simulate(t, dtReal);   // Analyse in echter Zeit, auch wenn Bilder ausfallen
+    const paused = mode === 'file' && audioEl.paused;
+
+    // Anzeige
+    for (const b of BANDS) {
+      A.env[b.key] = Math.max(A.on[b.key] > 0 ? 1 : 0, A.env[b.key] * Math.exp(-dt * 6));
+      meter[b.key].fill.style.width = (A.lv[b.key] * 100).toFixed(0) + '%';
+      meter[b.key].dot.style.opacity = A.env[b.key].toFixed(2);
+    }
+    A.env.drop = Math.max(A.drop, (A.env.drop || 0) * Math.exp(-dt * 1.5)); meter.drop.dot.style.opacity = A.env.drop.toFixed(2);
+    hud.textContent = `${mode === 'sim' ? 'Testsong (Simulation)' : (paused ? '⏸ ' : '♪ ') + (hud.dataset.src || '') + (ctx && ctx.state !== 'running' ? ' (Audio blockiert, bitte ins Bild klicken)' : '')}   Intensität ${'▮'.repeat(Math.round(A.loud * 10)).padEnd(10, '▯')}   Teilchen ${px.length + cor.length}   ${Math.round(1 / Math.max(dt, 0.001))} fps`;
+
+    const cx = W / 2, cy = H / 2;
+    const cres = A.loud, tint = mix(SILVER, GOLD, 0.15 + 0.35 * cres);
+    const onWave = onOf('wave'), onBurst = onOf('burst'), onL = onOf('jet'), onM = onOf('streamer'), onH = onOf('dust'), drop = dropOn ? A.drop : 0;
+
+    // ---- BASS: Kick -> Welle + Flammenstoß; Ring atmet ----
+    if (onWave > 0.05) { beatT = t; if (EL.W > 0) waves.push({ t0: t, s: Math.max(0.2, onWave) * EL.W }); }
+    if (onBurst > 0.05) { beatT = t; pulseProfile(0.45 + 0.8 * onBurst); }
+    const birth = Math.exp(-(t - beatT) * 3.5);
+    R = H * 0.19 * (1 + 0.05 * lvOf('breath') + 0.035 * birth * EL.W + 0.012 * Math.sin(t * TAU / 9));
+
+    // ---- TIEFEN: Anschläge -> einzelne Stichflammen ----
+    if (onL > 0.05) pulseProfile(0.35 + 0.6 * onL, 1, 2, 0.12, 0);
+
+    // ---- DROP ----
+    if (drop) {
+      pulseProfile(1.5, 6, 9, 0.6, 0.4);
+      if (EL.W > 0) { waves.push({ t0: t, s: 1 * EL.W }); waves.push({ t0: t + 0.25, s: 0.8 * EL.W }); }
+      corLvl = EL.C;
+      for (const s of streamers) { reseed(s); s.lvl = 1.2 * EL.C; }
+      releaseDust(1, cx, cy, 6);
+    }
+    while (waves.length && t - waves[0].t0 > 7) waves.shift();
+
+    const decay = Math.exp(-dt * 2.2);
+    for (let i = 0; i < CELLS; i++) { boost[i] *= decay; ember[i] = clamp01(ember[i] + (Math.random() - 0.5) * dt * 2.5); }
+
+    // ---- TIEFEN (Pegel) bestimmen die Grundhöhe der Flamme; feines Spektrum macht sie unregelmäßig ----
+    const lowDrive = 0.18 + 1.2 * lvOf('flame');
+    for (let i = 0; i < CELLS; i++) {
+      const a = i / CELLS * TAU;
+      const n1 = 0.5 + 0.5 * Math.sin(a * 7 + t * 0.9 + ph[i] * 0.2) * Math.sin(a * 3 - t * 0.6);
+      const n2 = 0.5 + 0.5 * Math.sin(a * 13 - t * 1.7 + 2);
+      const base = lowDrive * (0.12 + 0.22 * n1 * n1 + 0.1 * n2 + 0.12 * (ember[(i + CELLS - 1) % CELLS] + ember[i] + ember[(i + 1) % CELLS]) / 3);
+      const spec = sample(lvl, freqAt(a, t)) * (0.2 + 0.3 * cres);
+      const power = Math.min(1.4, base + spec + boost[i]) * EL.F;
+      heat[i] = power;
+      let n = 240 * Math.pow(power, 1.5) * dt * (1 + cres * 0.5) * Math.max(0, 1 - px.length / MAXPX);
+      n = Math.floor(n) + (Math.random() < n % 1 ? 1 : 0);
+      // HÖHEN: mehr Höhen -> mehr Staub reißt sich los
+      const freeP = (0.04 + 0.25 * Math.max(0, power - 0.4)) * (0.3 + 1.4 * lvOf('free')) * EL.P;
+      for (let j = 0; j < n; j++) {
+        const aa = a + (Math.random() - 0.5) * (TAU / CELLS) * 1.5;
+        const speed = R * (0.3 + Math.random() * 1.4) * power;
+        const free = Math.random() < freeP;
+        const life = free ? 2.5 + Math.random() * 3 : 0.5 + Math.random() * 0.9 * Math.min(1, power);
+        const r0 = R * (1.0 + Math.random() * 0.01);
+        px.push({ x: cx + Math.cos(aa) * r0, y: cy + Math.sin(aa) * r0,
+                  vx: Math.cos(aa) * speed * (free ? 1.2 : 1), vy: Math.sin(aa) * speed * (free ? 1.2 : 1),
+                  life, max: life, free, size: Math.random() < 0.88 ? 1 : 2 });
+      }
+    }
+    // ---- HÖHEN: Anschlag -> Staub reißt an mehreren Stellen ab ----
+    if (onH > 0.05) releaseDust(onH, cx, cy, 1 + Math.floor(onH * 3));
+
+    x.setTransform(Q, 0, 0, Q, 0, 0);
+    x.globalCompositeOperation = 'source-over';
+    x.fillStyle = '#000'; x.fillRect(0, 0, W, H);
+    x.globalCompositeOperation = 'lighter';
+
+    for (const w of waves) {
+      const age = t - w.t0; if (age < 0) continue;
+      const k = age / 7, rr = R * (1 + age * 0.2 + age * age * 0.025), link = Math.max(0, 1 - age / 1.6);
+      if (link > 0) {
+        const g = x.createRadialGradient(cx, cy, R, cx, cy, rr);
+        g.addColorStop(0, rgba(tint, 0.09 * link * w.s * EL.W)); g.addColorStop(1, rgba(tint, 0.015 * link * w.s * EL.W));
+        x.fillStyle = g; x.beginPath(); x.arc(cx, cy, rr, 0, TAU); x.arc(cx, cy, R, 0, TAU, true); x.fill();
+      }
+      x.strokeStyle = rgba(tint, 0.45 * w.s * EL.W * Math.pow(1 - k, 2)); x.lineWidth = 1.0 - 0.5 * k;
+      x.beginPath(); x.arc(cx, cy, rr, 0, TAU); x.stroke();
+    }
+
+    // HÖHEN: Strömung und Flimmern laufen schneller
+    const flowLv = lvOf('flow');
+    flowT += dt * (0.4 + 1.6 * flowLv);
+    shimT += dt * (1 + 4 * flowLv);
+    const shimAmp = 0.15 + 0.45 * flowLv;
+    const dragBound = Math.pow(0.986, dt * 60);
+    buf.fill(0);
+    const FS = R * (0.3 + 0.55 * flowLv);
+    for (let i = px.length - 1; i >= 0; i--) {
+      const p = px[i];
+      p.life -= dt;
+      const dx = p.x - cx, dy = p.y - cy, d = Math.hypot(dx, dy) || 1, nx = dx / d, ny = dy / d;
+      if (p.life <= 0 || d < R || p.x < 0 || p.y < 0 || p.x >= W || p.y >= H || (p.free ? EL.P : EL.F) === 0) { px[i] = px[px.length - 1]; px.pop(); continue; }
+      const u = dx / R, v = dy / R, [fx, fy] = flow(u, v, flowT);
+      if (p.free) {
+        const tx = fx * FS + nx * R * 0.18, ty = fy * FS + ny * R * 0.18;
+        p.vx += (tx - p.vx) * 1.6 * dt; p.vy += (ty - p.vy) * 1.6 * dt;
+      } else {
+        p.vx += fx * FS * 1.2 * dt - nx * R * 0.45 * dt; p.vy += fy * FS * 1.2 * dt - ny * R * 0.45 * dt;
+        p.vx *= dragBound; p.vy *= dragBound;
+      }
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      const k = 1 - p.life / p.max;
+      const h = p.free ? 0.35 + k * 0.6 : Math.min(1, (d - R) / (R * 0.9)) * 0.75 + k * 0.25;
+      const shimmer = 1 - shimAmp + shimAmp * Math.sin(u * 5 + v * 3.5 - shimT * 2.4);
+      const al = (p.free ? Math.min(1, p.life) * 0.55 * EL.P : (1 - k * k) * 0.75 * EL.F) * shimmer;
+      const c = RGB[(Math.min(0.999, Math.max(0, h)) * 63) | 0];
+      plot(p.x, p.y, p.size, c, al);
+    }
+
+    // ---- MITTEN: Corona. Pegel hält sie am Leben, Anschläge setzen Streamer an der Stelle der Tonhöhe ----
+    if (onM > 0.05 && EL.C > 0) {
+      const a = melodyAngle(A.centroid);
+      let s = streamers.reduce((m, q) => q.lvl < m.lvl ? q : m, streamers[0]);   // schwächsten Streamer neu einsetzen
+      reseed(s, a + gauss() * 0.15);
+      s.lvl = Math.min(1.4, 0.5 + onM * 1.0);
+      if (Math.random() < 0.45) loops.push({ a: a + gauss() * 0.2, span: 0.07 + Math.random() * 0.2, h: 0.08 + Math.random() * 0.22, age: 0, life: 2.5 + Math.random() * 3 });
+    }
+    const midHold = lvOf('corona');
+    corLvl += ((0.04 * M + 0.9 * midHold) * EL.C - corLvl) * (1 - Math.exp(-dt / (midHold > corLvl ? 0.6 : 2.5)));
+    if (EL.C === 0) corLvl = 0;
+    for (const s of streamers) { s.lvl *= Math.exp(-dt / (1.2 + 4 * midHold)); s.a += s.curve * 0.02 * dt; }
+
+    let n = spawnN((300 * EL.C * M + 5600 * corLvl) * dt);
+    for (let j = 0; j < n; j++) {
+      const s = streamers[(Math.random() * streamers.length) | 0];
+      const a = Math.random() < 0.55 ? s.a + gauss() * s.w * 3 : Math.random() * TAU;
+      const r = R * (1.004 + Math.pow(Math.random(), 3) * 0.14);
+      const life = 0.5 + Math.random() * 1.0;
+      cor.push({ kind: 0, x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r, vx: -Math.sin(a) * R * gauss() * 0.05, vy: Math.cos(a) * R * gauss() * 0.05, life, max: life, b: 0.3 + 0.7 * Math.min(1, corLvl + s.lvl * 0.5) });
+    }
+    for (const s of streamers) {
+      const vis = s.lvl * (0.3 + 0.7 * corLvl) * EL.C;
+      if (vis < 0.02) continue;
+      n = spawnN(1500 * vis * dt);
+      for (let j = 0; j < n; j++) {
+        const a = s.a + gauss() * s.w, r = R * 1.01, sp = R * (0.35 + Math.random() * 0.7);
+        const life = s.len * (0.5 + Math.random() * 0.7) * R / sp;
+        cor.push({ kind: 1, x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life, max: life, b: vis, warm: s.warm, curve: s.curve });
+      }
+    }
+    for (let i = loops.length - 1; i >= 0; i--) {
+      const lp = loops[i]; lp.age += dt;
+      if (lp.age > lp.life) { loops.splice(i, 1); continue; }
+      const env = Math.sin(lp.age / lp.life * Math.PI);
+      n = spawnN(700 * env * dt);
+      for (let j = 0; j < n; j++) { const life = 1.2 + Math.random() * 1.2; cor.push({ kind: 2, lp, strand: 0.75 + Math.random() * 0.5, off: gauss() * 0.01, life, max: life, b: env, x: 0, y: 0 }); }
+    }
+
+    cacc.fill(0);
+    if (EL.C === 0) { cor.length = 0; loops.length = 0; }
+    const birthGlow = 1 + 0.5 * birth;
+    for (let i = cor.length - 1; i >= 0; i--) {
+      const p = cor[i];
+      p.life -= dt;
+      if (p.life <= 0) { cor[i] = cor[cor.length - 1]; cor.pop(); continue; }
+      const k = 1 - p.life / p.max;
+      if (p.kind === 2) {
+        const lp = p.lp, a = lp.a - lp.span / 2 + lp.span * k + p.off, r = R * (1 + lp.h * p.strand * Math.sin(Math.PI * k));
+        p.x = cx + Math.cos(a) * r; p.y = cy + Math.sin(a) * r;
+        const al = (0.5 * p.b * Math.sin(Math.PI * k) + 0.1) * birthGlow;
+        addSoft(p.x, p.y, AMBER, al * 0.6); addSharp(p.x, p.y, AMBER, al * 0.5);
+        continue;
+      }
+      const dx = p.x - cx, dy = p.y - cy, d = Math.hypot(dx, dy) || 1, nx = dx / d, ny = dy / d;
+      if (d < R) { cor[i] = cor[cor.length - 1]; cor.pop(); continue; }
+      const u = dx / R, v = dy / R, [fx, fy] = flow(u, v, flowT);
+      const ang = Math.atan2(dy, dx), hc = heat[((((ang / TAU) % 1) + 1) % 1 * CELLS) | 0];
+      if (p.kind === 1) {
+        p.vx += (fx * FS * 0.25 - ny * p.curve * R * 0.3) * dt + nx * R * 0.3 * Math.max(0, hc - 0.5) * dt;
+        p.vy += (fy * FS * 0.25 + nx * p.curve * R * 0.3) * dt + ny * R * 0.3 * Math.max(0, hc - 0.5) * dt;
+      } else { p.vx += fx * FS * 0.15 * dt; p.vy += fy * FS * 0.15 * dt; }
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      const rr = d / R - 1;
+      if (p.kind === 0) {
+        const al = 0.55 * p.b * Math.sin(Math.PI * k) * Math.exp(-rr * 9) * birthGlow;
+        addSoft(p.x, p.y, AMBER, al); addSharp(p.x, p.y, AMBER, al * 0.35);
+      } else {
+        const fade = Math.sin(Math.PI * Math.min(1, k * 1.15)) * Math.exp(-rr * 0.55);
+        const far = Math.min(1, rr / 2.2);
+        const col = far < 0.35 ? mix(AMBER, BEIGE, far / 0.35) : mix(BEIGE, p.warm > 0.5 ? BEIGE : ICE, (far - 0.35) / 0.65);
+        const al = 0.16 * p.b * fade;
+        addSoft(p.x, p.y, col, al); if (Math.random() < 0.15) addSharp(p.x, p.y, col, al * 0.8);
+      }
+    }
+    for (let i = 0, o = 0; i < CW * CH; i++, o += 3) { const q = i * 4; cdata[q] = cacc[o]; cdata[q + 1] = cacc[o + 1]; cdata[q + 2] = cacc[o + 2]; cdata[q + 3] = 255; }
+    clx.putImageData(cimg, 0, 0);
+    x.imageSmoothingEnabled = true;
+    x.drawImage(clayer, 0, 0, W, H);
+    lx.putImageData(img, 0, 0);
+    x.drawImage(layer, 0, 0, W, H);
+
+    [[1, 1.8, 0.95, WHITE], [1.014 + 0.006 * Math.sin(t * 0.5 + 1), 0.6, 0.22, tint]].forEach(([k, lw, al, col]) => {
+      x.strokeStyle = rgba(col, al); x.lineWidth = lw; x.beginPath(); x.arc(cx, cy, R * k, 0, TAU); x.stroke();
+    });
+    x.lineWidth = 3;
+    for (let i = 0; i < CELLS; i++) {
+      const e = Math.max(0, heat[i] - 0.35);
+      if (e < 0.02) continue;
+      x.strokeStyle = rgba(GOLD, Math.min(0.7, e * 0.8));
+      x.beginPath(); x.arc(cx, cy, R, i / CELLS * TAU, (i + 1.2) / CELLS * TAU); x.stroke();
+    }
+
+    gx.clearRect(0, 0, glow.width, glow.height);
+    gx.drawImage(cv, 0, 0, glow.width, glow.height);
+    x.globalAlpha = 0.5 + 0.35 * cres; x.imageSmoothingEnabled = true;
+    x.drawImage(glow, 0, 0, W, H); x.globalAlpha = 1; x.globalCompositeOperation = 'source-over';
+
+    x.fillStyle = '#000'; x.beginPath(); x.arc(cx, cy, R * 0.992, 0, TAU); x.fill();
+    x.strokeStyle = rgba(WHITE, 0.95); x.lineWidth = 1.8; x.beginPath(); x.arc(cx, cy, R, 0, TAU); x.stroke();
+
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  // ---- Standard-Marken an allen Reglern; Doppelklick oder ↺ setzt zurück ----
+  const THUMB = 16;                                                // Breite des Reglerknopfs in px
+  document.querySelectorAll('input[type=range][data-default]').forEach(inp => {
+    const def = +inp.dataset.default, min = +inp.min, max = +inp.max, frac = (def - min) / (max - min);
+    inp._val = inp.nextElementSibling;                              // Wertanzeige merken, bevor der Regler umgehängt wird
+    const wrap = document.createElement('span');
+    wrap.style.cssText = 'position:relative;display:flex;align-items:center;gap:.4rem';
+    inp.parentNode.insertBefore(wrap, inp);
+    const box = document.createElement('span'); box.style.cssText = 'position:relative;flex:1;display:flex;align-items:center';
+    wrap.appendChild(box); box.appendChild(inp); inp.style.width = '100%';
+    const mark = document.createElement('span');
+    mark.title = 'Standard';
+    mark.style.cssText = `position:absolute;top:-3px;bottom:-3px;width:3px;margin-left:-1.5px;border-radius:2px;background:#e8b04a;pointer-events:none;box-shadow:0 0 0 1px rgba(0,0,0,.35);left:calc(${THUMB / 2}px + (100% - ${THUMB}px) * ${frac})`;
+    box.appendChild(mark);
+    const reset = () => { inp.value = def; inp.dispatchEvent(new Event('input')); };
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.textContent = '↺'; btn.title = 'Auf Standard zurücksetzen';
+    btn.style.cssText = 'border:none;background:none;cursor:pointer;font-size:1rem;line-height:1;color:#e8b04a;padding:0 .1rem';
+    btn.addEventListener('click', reset); inp.addEventListener('dblclick', reset);
+    wrap.appendChild(btn);
+  });
+})();
+</script>

@@ -1,0 +1,197 @@
+# Spektra – deutsche Texte
+msgid ""
+msgstr ""
+"Language: de_DE\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgctxt "#32000"
+msgid "General"
+msgstr "Allgemein"
+
+msgctxt "#32001"
+msgid "Spektra on"
+msgstr "Spektra eingeschaltet"
+
+msgctxt "#32002"
+msgid "Open automatically when music starts"
+msgstr "Bei Musikstart automatisch öffnen"
+
+msgctxt "#32003"
+msgid "Scene"
+msgstr "Szene"
+
+msgctxt "#32004"
+msgid "Music intensity (%)"
+msgstr "Musik-Intensität (%)"
+
+msgctxt "#32010"
+msgid "Eclipse"
+msgstr "Eclipse"
+
+msgctxt "#32011"
+msgid "Flame (%)"
+msgstr "Flamme (%)"
+
+msgctxt "#32012"
+msgid "Waves (%)"
+msgstr "Wellen (%)"
+
+msgctxt "#32013"
+msgid "Free particles (%)"
+msgstr "Freie Partikel (%)"
+
+msgctxt "#32014"
+msgid "Corona (%)"
+msgstr "Corona (%)"
+
+msgctxt "#32015"
+msgid "Pixel size"
+msgstr "Pixelgröße"
+
+msgctxt "#32016"
+msgid "Drop effect"
+msgstr "Drop-Effekt"
+
+msgctxt "#32020"
+msgid "0.5×"
+msgstr "0,5×"
+
+msgctxt "#32021"
+msgid "0.75×"
+msgstr "0,75×"
+
+msgctxt "#32022"
+msgid "1× (default)"
+msgstr "1× (Standard)"
+
+msgctxt "#32023"
+msgid "1.5×"
+msgstr "1,5×"
+
+msgctxt "#32024"
+msgid "2×"
+msgstr "2×"
+
+msgctxt "#32025"
+msgid "3×"
+msgstr "3×"
+
+msgctxt "#32026"
+msgid "4×"
+msgstr "4×"
+
+msgctxt "#32027"
+msgid "6×"
+msgstr "6×"
+
+msgctxt "#32028"
+msgid "8×"
+msgstr "8×"
+
+msgctxt "#32030"
+msgid "Eclipse: mapping"
+msgstr "Eclipse: Zuordnung"
+
+msgctxt "#32031"
+msgid "Ring breathes (level)"
+msgstr "Ring atmet (Pegel)"
+
+msgctxt "#32032"
+msgid "Flame height (level)"
+msgstr "Flammenhöhe (Pegel)"
+
+msgctxt "#32033"
+msgid "Corona strength (level)"
+msgstr "Corona-Stärke (Pegel)"
+
+msgctxt "#32034"
+msgid "Dust breaks free (level)"
+msgstr "Staub löst sich (Pegel)"
+
+msgctxt "#32035"
+msgid "Flow & shimmer (level)"
+msgstr "Strömung & Flimmern (Pegel)"
+
+msgctxt "#32036"
+msgid "Wave (hit)"
+msgstr "Welle (Anschlag)"
+
+msgctxt "#32037"
+msgid "Flame burst all around (hit)"
+msgstr "Flammenstoß rundum (Anschlag)"
+
+msgctxt "#32038"
+msgid "Flame jet (hit)"
+msgstr "Stichflamme (Anschlag)"
+
+msgctxt "#32039"
+msgid "Streamer + arc (hit)"
+msgstr "Streamer + Bogen (Anschlag)"
+
+msgctxt "#32040"
+msgid "Dust burst (hit)"
+msgstr "Staubausbruch (Anschlag)"
+
+msgctxt "#32050"
+msgid "Bass (25–120 Hz)"
+msgstr "Bass (25–120 Hz)"
+
+msgctxt "#32051"
+msgid "Lows (120–500 Hz)"
+msgstr "Tiefen (120–500 Hz)"
+
+msgctxt "#32052"
+msgid "Mids (500 Hz–3 kHz)"
+msgstr "Mitten (500 Hz–3 kHz)"
+
+msgctxt "#32053"
+msgid "Highs (3–16 kHz)"
+msgstr "Höhen (3–16 kHz)"
+
+msgctxt "#32060"
+msgid "Performance"
+msgstr "Leistung"
+
+msgctxt "#32061"
+msgid "Particle limit"
+msgstr "Teilchenlimit"
+
+msgctxt "#32080"
+msgid "Turn Spektra on"
+msgstr "Spektra einschalten"
+
+msgctxt "#32081"
+msgid "Turn Spektra off"
+msgstr "Spektra ausschalten"
+
+msgctxt "#32082"
+msgid "Settings"
+msgstr "Einstellungen"
+
+msgctxt "#32083"
+msgid "Status"
+msgstr "Status"
+
+msgctxt "#32084"
+msgid "Open menu"
+msgstr "Menü öffnen"
+
+msgctxt "#32085"
+msgid "Reset everything to default"
+msgstr "Alles auf Standard"
+
+msgctxt "#32090"
+msgid "Unknown command."
+msgstr "Unbekannter Befehl."
+
+msgctxt "#32091"
+msgid "Unknown setting."
+msgstr "Unbekannte Einstellung."
+
+msgctxt "#32092"
+msgid "Invalid value."
+msgstr "Ungültiger Wert."
+
+msgctxt "#32093"
+msgid "The Spektra service is not ready yet. Please wait."
+msgstr "Der Spektra-Service ist noch nicht bereit. Bitte kurz warten."

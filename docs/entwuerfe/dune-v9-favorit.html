@@ -1,0 +1,388 @@
+<h2>Dune v9: warme Corona, die kommt und geht</h2>
+<p class="subtitle">Basis v8. Die Corona ist jetzt ein eigenes Element nach euren Referenzbildern: ein heller, goldener Saum direkt am Rand mit Magnetbögen, aus dem lange, feinfaserige Streamer bis an den Bildrand ziehen, innen golden, außen in warmes Beige und kühles Silberblau auslaufend. Sie besteht aus Staub, wird aber weich gerendert. Impulse lassen einzelne Streamer und Bögen aufleben; ohne Nachschub verblasst die Corona über einige Sekunden fast ganz. Jedes Mal entsteht sie an neuen Stellen.</p>
+
+<div style="display:flex;gap:.6rem;flex-wrap:wrap;margin:.6rem 0">
+  <label class="mock-button" style="cursor:pointer">Musikdatei wählen<input id="au-file" type="file" accept="audio/*" style="display:none"></label>
+  <button class="mock-button" id="au-mic" type="button">Mikrofon</button>
+  <button class="mock-button" id="au-sim" type="button">Simulation</button>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header" id="dune-hud">Simulation</div>
+  <div class="mockup-body" style="padding:0"><canvas id="cv-dune" width="1280" height="720" style="width:100%;display:block;background:#000"></canvas></div>
+</div>
+<audio id="au-el" controls style="width:100%;margin-top:.6rem;display:none"></audio>
+
+<script>
+(function () {
+  const TAU = Math.PI * 2;
+  const WHITE = [250, 250, 255], SILVER = [222, 230, 242], GOLD = [226, 182, 110], EMBER = [214, 96, 46], RUBY = [190, 22, 48];
+  const rgba = (c, a) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a})`;
+  const mix = (c1, c2, k) => c1.map((v, i) => v + (c2[i] - v) * k);
+  const STOPS = [WHITE, SILVER, GOLD, EMBER, RUBY];
+  const fireCol = h => { h = Math.min(0.999, Math.max(0, h)) * (STOPS.length - 1); const i = Math.floor(h); return mix(STOPS[i], STOPS[i + 1], h - i); };
+
+  // ---- Audio-Zustand (gemeinsam für Simulation und echte Musik) ----
+  const NB = 32, lvl = new Float32Array(NB), prevLvl = new Float32Array(NB);
+  let sub = 0, cres = 0, beatT = -9, mode = 'sim';
+  const waves = [];
+
+  // Simulation
+  let lastPulse = 0;
+  function simulate(t) {
+    sub += (0.5 + 0.5 * Math.sin(t * 0.45) * Math.sin(t * 0.13 + 1) - sub) * 0.03;
+    const c = (t % 16) / 16;
+    const ct = c < 0.62 ? Math.pow(c / 0.62, 2.2) : Math.pow(1 - (c - 0.62) / 0.38, 1.5);
+    cres += (ct - cres) * 0.05;
+    const beat = Math.exp(-(t - beatT) * 5);
+    for (let i = 0; i < NB; i++) {
+      const f = i / (NB - 1);
+      const v = (1 - f) * (0.2 + 0.6 * beat) * (0.5 + 0.5 * sub)
+              + 0.4 * Math.pow(Math.max(0, Math.sin(t * (0.8 + f * 2.5) + i * 1.7)), 4) * (0.3 + 0.7 * cres)
+              + 0.2 * f * Math.random() * (0.2 + cres);
+      const tgt = Math.min(1, Math.max(0, v));
+      lvl[i] += (tgt - lvl[i]) * (tgt > lvl[i] ? 0.5 : 0.08);
+    }
+    if (t - lastPulse > 2.0 - 1.1 * cres) { lastPulse = t; return 0.5 + 0.5 * cres; }
+    return 0;
+  }
+
+  // Echte Musik über Web Audio
+  let ctx = null, analyser = null, bins = null, srcNode = null;
+  let bassAvg = 0, loudAvg = 0, loudMax = 0.05, lastBeat = 0;
+  const peak = new Float32Array(NB).fill(0.05);
+  function ensureCtx() {
+    if (!ctx) { ctx = new AudioContext(); analyser = ctx.createAnalyser(); analyser.fftSize = 4096; analyser.smoothingTimeConstant = 0.6; bins = new Uint8Array(analyser.frequencyBinCount); }
+    if (ctx.state === 'suspended') ctx.resume();
+  }
+  function analyse(t) {
+    analyser.getByteFrequencyData(bins);
+    const hz = ctx.sampleRate / analyser.fftSize;
+    let loud = 0;
+    for (let i = 0; i < NB; i++) {                                 // logarithmische Bänder 30 Hz .. 14 kHz
+      const lo = 30 * Math.pow(14000 / 30, i / NB), hi = 30 * Math.pow(14000 / 30, (i + 1) / NB);
+      let s = 0, n = 0;
+      for (let b = Math.floor(lo / hz); b <= Math.ceil(hi / hz) && b < bins.length; b++) { s += bins[b]; n++; }
+      const v = n ? s / n / 255 : 0;
+      peak[i] = Math.max(v, peak[i] * 0.9995, 0.05);                // automatische Verstärkung je Band
+      const tgt = Math.min(1, Math.pow(v / peak[i], 1.6));
+      lvl[i] += (tgt - lvl[i]) * (tgt > lvl[i] ? 0.6 : 0.1);
+      loud += v;
+    }
+    loud /= NB;
+    const bass = (lvl[0] + lvl[1] + lvl[2] + lvl[3]) / 4;
+    sub += (bass - sub) * 0.05;
+    loudMax = Math.max(loud, loudMax * 0.9997);
+    loudAvg += (loud - loudAvg) * 0.02;
+    cres += (Math.min(1, Math.pow(loudAvg / loudMax, 2)) - cres) * 0.03;
+    // Beat: Bass springt deutlich über seinen gleitenden Mittelwert
+    let p = 0;
+    if (bass > bassAvg * 1.35 + 0.05 && t - lastBeat > 0.28) { lastBeat = t; p = Math.min(1, 0.4 + (bass - bassAvg) * 1.5); }
+    bassAvg += (bass - bassAvg) * 0.08;
+    return p;
+  }
+
+  const hud = document.getElementById('dune-hud'), audioEl = document.getElementById('au-el');
+  document.getElementById('au-file').addEventListener('change', e => {
+    const f = e.target.files[0]; if (!f) return;
+    ensureCtx();
+    audioEl.src = URL.createObjectURL(f); audioEl.style.display = 'block';
+    if (!audioEl._node) { audioEl._node = ctx.createMediaElementSource(audioEl); }
+    if (srcNode && srcNode !== audioEl._node) srcNode.disconnect();
+    srcNode = audioEl._node; srcNode.connect(analyser); analyser.connect(ctx.destination);
+    audioEl.play(); mode = 'file'; hud.dataset.src = f.name;
+  });
+  document.getElementById('au-mic').addEventListener('click', async () => {
+    try {
+      ensureCtx();
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+      if (srcNode) srcNode.disconnect();
+      try { analyser.disconnect(); } catch (_) {}
+      audioEl.pause();
+      srcNode = ctx.createMediaStreamSource(stream); srcNode.connect(analyser);   // nicht an Lautsprecher (Rückkopplung)
+      mode = 'mic'; hud.dataset.src = 'Mikrofon';
+    } catch (err) { hud.dataset.src = 'Mikrofon nicht verfügbar'; }
+  });
+  document.getElementById('au-sim').addEventListener('click', () => { audioEl.pause(); mode = 'sim'; });
+
+  const sample = (arr, f) => { f = Math.min(1, Math.max(0, f)) * (NB - 1); const i = Math.floor(f), k = f - i; return arr[i] * (1 - k) + arr[Math.min(NB - 1, i + 1)] * k; };
+  const freqAt = (a, t) => (0.5 + 0.5 * Math.sin(a * 3 + t * 0.07) * Math.cos(a * 5 - t * 0.05 + 1.3));
+
+  // ---- Flammen und Pixel ----
+  const px = [], MAXPX = 42000;
+  // Flammenfeld: 240 Zellen rund um den Ring, jede mit eigener Grundglut, Spektrumsanteil und Puls-Schub
+  const CELLS = 240, boost = new Float32Array(CELLS), ember = new Float32Array(CELLS), heat = new Float32Array(CELLS);
+  const ph = Array.from({ length: CELLS }, () => Math.random() * TAU);
+  for (let i = 0; i < CELLS; i++) ember[i] = Math.random();
+  // Zufallsprofil für einen Puls: einige breite Buckel + feines Rauschen, nie gleichmäßig
+  function pulseProfile(strength) {
+    const bumps = [];
+    for (let k = 0, n = 3 + Math.floor(Math.random() * 5); k < n; k++) bumps.push({ a: Math.random() * TAU, w: 0.15 + Math.random() * 0.5, h: 0.4 + Math.random() * 0.9 });
+    for (let i = 0; i < CELLS; i++) {
+      const a = i / CELLS * TAU;
+      let v = 0.15 + 0.25 * Math.random();
+      for (const b of bumps) { const d = Math.abs((((a - b.a + Math.PI) % TAU) + TAU) % TAU - Math.PI); v += b.h * Math.exp(-(d * d) / (2 * b.w * b.w)); }
+      boost[i] = Math.max(boost[i], v * strength);
+    }
+  }
+  const COL = new Map();
+  const colStr = (h, al) => { const k = ((h * 63) | 0) * 32 + ((Math.min(1, al) * 31) | 0); let s = COL.get(k); if (!s) { s = rgba(fireCol(((k / 32) | 0) / 63), (k % 32) / 31); COL.set(k, s); } return s; };
+
+  const cv = document.getElementById('cv-dune'), x = cv.getContext('2d'), W = cv.width, H = cv.height;
+  const glow = document.createElement('canvas'); glow.width = W / 4; glow.height = H / 4; const gx = glow.getContext('2d');
+  const GRID = 2;
+  let prev = performance.now(), R = 0;
+  // Gemeinsames, wirbelfreies Strömungsfeld (Curl einer Stromfunktion): Nachbarn bewegen sich ähnlich
+  function flow(u, v, t) {
+    const a1 = u * 1.7 + t * 0.35, b1 = v * 1.3 - t * 0.27;
+    const a2 = (u * 0.9 - v * 1.1) * 1.6 + t * 0.5;
+    const a3 = u * 3.1 + t * 0.8, b3 = v * 2.7 - t * 0.6;
+    // psi = sin(a1)cos(b1) + 0.6 sin(a2) + 0.35 sin(a3) sin(b3)
+    const dpu = 1.7 * Math.cos(a1) * Math.cos(b1) + 0.6 * 1.44 * Math.cos(a2) + 0.35 * 3.1 * Math.cos(a3) * Math.sin(b3);
+    const dpv = -1.3 * Math.sin(a1) * Math.sin(b1) - 0.6 * 1.76 * Math.cos(a2) + 0.35 * 2.7 * Math.sin(a3) * Math.cos(b3);
+    return [dpv, -dpu];
+  }
+  const img = x.createImageData(W, H), buf = img.data;
+  const layer = document.createElement('canvas'); layer.width = W; layer.height = H; const lx = layer.getContext('2d');
+  const RGB = Array.from({ length: 64 }, (_, i) => fireCol(i / 63));
+  // ---- Corona: eigenes Element aus Staub, weich gerendert (halbe Auflösung) ----
+  const CS = 2, CW = W / CS, CH = H / CS;
+  const cacc = new Float32Array(CW * CH * 3), cimg = x.createImageData(CW, CH), cdata = cimg.data;
+  const clayer = document.createElement('canvas'); clayer.width = CW; clayer.height = CH; const clx = clayer.getContext('2d');
+  const AMBER = [255, 196, 84], BEIGE = [236, 214, 182], ICE = [184, 208, 244];
+  const cor = [];                                                  // {x,y,vx,vy,life,max,b,kind,col,...}
+  let corLvl = 0;
+  const streamers = [];
+  function reseed(st) { st.a = Math.random() * TAU; st.w = 0.04 + Math.random() * 0.16; st.warm = Math.random(); st.len = 1.3 + Math.random() * 2.6; st.curve = (Math.random() - 0.5) * 0.25; }
+  for (let i = 0; i < 9; i++) { const st = { lvl: 0 }; reseed(st); streamers.push(st); }
+  const loops = [];
+  const gauss = () => (Math.random() + Math.random() + Math.random() - 1.5) / 1.5;
+  function addSoft(px_, py_, c, al) {
+    const ix = (px_ / CS) | 0, iy = (py_ / CS) | 0;
+    if (ix < 0 || iy < 0 || ix >= CW || iy >= CH) return;
+    const o = (iy * CW + ix) * 3; cacc[o] += c[0] * al; cacc[o + 1] += c[1] * al; cacc[o + 2] += c[2] * al;
+  }
+  function addSharp(px_, py_, c, al) {
+    const ix = px_ | 0, iy = py_ | 0;
+    if (ix < 0 || iy < 0 || ix >= W || iy >= H) return;
+    const o = (iy * W + ix) * 4; buf[o] += c[0] * al; buf[o + 1] += c[1] * al; buf[o + 2] += c[2] * al; buf[o + 3] = 255;
+  }
+  const spawnN = r => Math.floor(r) + (Math.random() < r % 1 ? 1 : 0);
+
+  function frame(now) {
+    const t = now / 1000, dt = Math.min(0.05, (now - prev) / 1000); prev = now;
+    prevLvl.set(lvl);
+    const live = mode !== 'sim' && analyser && !(mode === 'file' && audioEl.paused);
+    const pulse = live ? analyse(t) : simulate(t);
+    if (pulse) { beatT = t; waves.push({ t0: t, s: Math.max(0.4, pulse) }); }
+    while (waves.length && t - waves[0].t0 > 7) waves.shift();
+    hud.textContent = `${live ? '♪ ' + (hud.dataset.src || '') : 'Simulation'}   Bass ${'▮'.repeat(Math.round(sub * 10)).padEnd(10, '▯')}   Intensität ${'▮'.repeat(Math.round(cres * 10)).padEnd(10, '▯')}`;
+
+    const birth = Math.exp(-(t - beatT) * 3.5);
+    R = H * 0.19 * (1 + 0.06 * sub + 0.03 * birth + 0.02 * Math.sin(t * TAU / 9));
+    const cx = W / 2, cy = H / 2;
+    const tint = mix(SILVER, GOLD, 0.15 + 0.35 * cres);
+
+    if (pulse) pulseProfile(0.6 + 0.6 * pulse);
+    const decay = Math.exp(-dt * 2.2);
+    for (let i = 0; i < CELLS; i++) {
+      boost[i] *= decay;
+      // Grundglut wandert zufällig (Random Walk), damit keine Stelle gleich bleibt
+      ember[i] = Math.min(1, Math.max(0, ember[i] + (Math.random() - 0.5) * dt * 2.5));
+    }
+
+    for (let i = 0; i < CELLS; i++) {
+      const a = i / CELLS * TAU;
+      // Grundflamme: Überlagerung mehrerer langsamer Wellen + Glut-Zufall + Spektrum an dieser Stelle
+      const n1 = 0.5 + 0.5 * Math.sin(a * 7 + t * 0.9 + ph[i] * 0.2) * Math.sin(a * 3 - t * 0.6);
+      const n2 = 0.5 + 0.5 * Math.sin(a * 13 - t * 1.7 + 2);
+      const base = 0.12 + 0.22 * n1 * n1 + 0.1 * n2 + 0.12 * (ember[(i + CELLS - 1) % CELLS] + ember[i] + ember[(i + 1) % CELLS]) / 3;
+      const spec = sample(lvl, freqAt(a, t)) * (0.25 + 0.35 * cres);
+      const power = Math.min(1.4, base + spec + boost[i]);
+      heat[i] = power;
+      // Dichte gleichmäßig ausdünnen, wenn viele Pixel unterwegs sind (keine Stelle verhungert)
+      let n = 240 * Math.pow(power, 1.5) * dt * (1 + cres * 0.5) * Math.max(0, 1 - px.length / MAXPX);
+      n = Math.floor(n) + (Math.random() < n % 1 ? 1 : 0);
+      for (let j = 0; j < n; j++) {
+        const fl = { power: Math.min(1, power) };
+        const aa = a + (Math.random() - 0.5) * (TAU / CELLS) * 1.5;
+        const speed = R * (0.3 + Math.random() * 1.4) * power;
+        const free = Math.random() < 0.1 + 0.3 * Math.max(0, power - 0.4);
+        const life = free ? 2.5 + Math.random() * 3 : 0.5 + Math.random() * 0.9 * fl.power;
+        const r0 = R * (1.0 + Math.random() * 0.01);
+        px.push({ x: cx + Math.cos(aa) * r0, y: cy + Math.sin(aa) * r0,
+                  vx: Math.cos(aa) * speed * (free ? 1.2 : 1), vy: Math.sin(aa) * speed * (free ? 1.2 : 1),
+                  life, max: life, free, seed: Math.random() * 100,
+                  size: Math.random() < 0.88 ? 1 : 2 });
+      }
+    }
+
+    x.globalCompositeOperation = 'source-over';
+    x.fillStyle = '#000'; x.fillRect(0, 0, W, H);
+    x.globalCompositeOperation = 'lighter';
+
+    for (const w of waves) {
+      const age = t - w.t0, k = age / 7;
+      const rr = R * (1 + age * 0.2 + age * age * 0.025);
+      const link = Math.max(0, 1 - age / 1.6);
+      if (link > 0) {
+        const g = x.createRadialGradient(cx, cy, R, cx, cy, rr);
+        g.addColorStop(0, rgba(tint, 0.09 * link * w.s)); g.addColorStop(1, rgba(tint, 0.015 * link * w.s));
+        x.fillStyle = g; x.beginPath(); x.arc(cx, cy, rr, 0, TAU); x.arc(cx, cy, R, 0, TAU, true); x.fill();
+      }
+      x.strokeStyle = rgba(tint, 0.45 * w.s * Math.pow(1 - k, 2)); x.lineWidth = 1.0 - 0.5 * k;
+      x.beginPath(); x.arc(cx, cy, rr, 0, TAU); x.stroke();
+    }
+
+    const dragBound = Math.pow(0.986, dt * 60);
+    buf.fill(0);
+    const FS = R * 0.55;                                            // Stärke der Strömung
+    for (let i = px.length - 1; i >= 0; i--) {
+      const p = px[i];
+      p.life -= dt;
+      const dx = p.x - cx, dy = p.y - cy, d = Math.hypot(dx, dy) || 1, nx = dx / d, ny = dy / d;
+      if (p.life <= 0 || d < R || p.x < 0 || p.y < 0 || p.x >= W || p.y >= H) { px[i] = px[px.length - 1]; px.pop(); continue; }
+      const u = dx / R, v = dy / R, [fx, fy] = flow(u, v, t);
+      if (p.free) {
+        // freie Pixel folgen der Strömung und driften langsam nach außen
+        const tx = fx * FS + nx * R * 0.18, ty = fy * FS + ny * R * 0.18;
+        p.vx += (tx - p.vx) * 1.6 * dt; p.vy += (ty - p.vy) * 1.6 * dt;
+      } else {
+        // gebundene: Auftrieb nach außen, Sog zurück, aber seitlich von der gemeinsamen Strömung geschwenkt
+        p.vx += fx * FS * 1.2 * dt - nx * R * 0.45 * dt; p.vy += fy * FS * 1.2 * dt - ny * R * 0.45 * dt;
+        p.vx *= dragBound; p.vy *= dragBound;
+      }
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      const k = 1 - p.life / p.max;
+      const h = p.free ? 0.35 + k * 0.6 : Math.min(1, (d - R) / (R * 0.9)) * 0.75 + k * 0.25;
+      // Flimmern als Welle durch den Staub statt pro Pixel
+      const shimmer = 0.65 + 0.35 * Math.sin(u * 5 + v * 3.5 - t * 2.4);
+      const al = (p.free ? Math.min(1, p.life) * 0.55 : (1 - k * k) * 0.75) * shimmer;
+      const c = RGB[(Math.min(0.999, Math.max(0, h)) * 63) | 0];
+      const ix = p.x | 0, iy = p.y | 0;
+      for (let sy = 0; sy < p.size; sy++) for (let sx = 0; sx < p.size; sx++) {
+        if (ix + sx >= W || iy + sy >= H) continue;
+        const o = ((iy + sy) * W + ix + sx) * 4;
+        buf[o] += c[0] * al; buf[o + 1] += c[1] * al; buf[o + 2] += c[2] * al; buf[o + 3] = 255;
+      }
+    }
+    // ---- Corona ----
+    // Impulse beleben einzelne Streamer und Bögen; alles klingt über Sekunden ab
+    if (pulse) {
+      corLvl = Math.min(1, corLvl + 0.18 + 0.25 * pulse);
+      for (let k = 0, n = 1 + Math.floor(Math.random() * 3); k < n; k++) {
+        const st = streamers[(Math.random() * streamers.length) | 0];
+        if (st.lvl < 0.08) reseed(st);                              // erloschen -> taucht woanders neu auf
+        st.lvl = Math.min(1.4, st.lvl + pulse * (0.4 + Math.random() * 0.8));
+      }
+      if (Math.random() < 0.5) loops.push({ a: Math.random() * TAU, span: 0.07 + Math.random() * 0.2, h: 0.08 + Math.random() * 0.22, age: 0, life: 2.5 + Math.random() * 3 });
+    }
+    corLvl = Math.max(corLvl * Math.exp(-dt / 4.5), 0.08 + 0.35 * cres);
+    for (const st of streamers) { st.lvl *= Math.exp(-dt / 3.2); st.a += st.curve * 0.02 * dt; }
+
+    // Saum am Rand: dicht, golden, ungleichmäßig (stärker unter aktiven Streamern)
+    let n = spawnN((900 + 5200 * corLvl) * dt);
+    for (let j = 0; j < n; j++) {
+      const st = streamers[(Math.random() * streamers.length) | 0];
+      const a = Math.random() < 0.55 ? st.a + gauss() * st.w * 3 : Math.random() * TAU;
+      const r = R * (1.004 + Math.pow(Math.random(), 3) * 0.14);
+      const life = 0.5 + Math.random() * 1.0;
+      cor.push({ kind: 0, x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r, vx: -Math.sin(a) * R * gauss() * 0.05, vy: Math.cos(a) * R * gauss() * 0.05, life, max: life, b: 0.35 + 0.65 * Math.min(1, corLvl + st.lvl * 0.5), col: AMBER });
+    }
+    // Streamer: Fasern ziehen weit nach außen
+    for (const st of streamers) {
+      const vis = st.lvl * (0.35 + 0.65 * corLvl);
+      if (vis < 0.02) continue;
+      n = spawnN(1500 * vis * dt);
+      for (let j = 0; j < n; j++) {
+        const a = st.a + gauss() * st.w;
+        const r = R * 1.01, sp = R * (0.35 + Math.random() * 0.7);
+        const life = st.len * (0.5 + Math.random() * 0.7) * R / sp;
+        cor.push({ kind: 1, x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life, max: life, b: vis, warm: st.warm, curve: st.curve });
+      }
+    }
+    // Magnetbögen: Staub läuft vom Rand über einen Bogen zurück zum Rand
+    for (let i = loops.length - 1; i >= 0; i--) {
+      const lp = loops[i]; lp.age += dt;
+      if (lp.age > lp.life) { loops.splice(i, 1); continue; }
+      const env = Math.sin(lp.age / lp.life * Math.PI);
+      n = spawnN(700 * env * dt);
+      for (let j = 0; j < n; j++) {
+        const life = 1.2 + Math.random() * 1.2;
+        cor.push({ kind: 2, lp, s: 0, strand: 0.75 + Math.random() * 0.5, off: gauss() * 0.01, life, max: life, b: env, x: 0, y: 0 });
+      }
+    }
+
+    cacc.fill(0);
+    for (let i = cor.length - 1; i >= 0; i--) {
+      const p = cor[i];
+      p.life -= dt;
+      if (p.life <= 0) { cor[i] = cor[cor.length - 1]; cor.pop(); continue; }
+      const k = 1 - p.life / p.max;
+      if (p.kind === 2) {                                          // Bogen-Parametrisierung
+        const lp = p.lp, sArc = k, a = lp.a - lp.span / 2 + lp.span * sArc + p.off;
+        const r = R * (1 + lp.h * p.strand * Math.sin(Math.PI * sArc));
+        p.x = cx + Math.cos(a) * r; p.y = cy + Math.sin(a) * r;
+        const al = 0.5 * p.b * Math.sin(Math.PI * sArc) + 0.1;
+        addSoft(p.x, p.y, AMBER, al * 0.6); addSharp(p.x, p.y, AMBER, al * 0.5);
+        continue;
+      }
+      const dx = p.x - cx, dy = p.y - cy, d = Math.hypot(dx, dy) || 1, nx = dx / d, ny = dy / d;
+      if (d < R) { cor[i] = cor[cor.length - 1]; cor.pop(); continue; }
+      const u = dx / R, v = dy / R, [fx, fy] = flow(u, v, t);
+      const ang = Math.atan2(dy, dx), hc = heat[((((ang / TAU) % 1) + 1) % 1 * CELLS) | 0];
+      if (p.kind === 1) {
+        // Streamer: radial, leicht gebogen, von der gemeinsamen Strömung und der Flammenhitze geschwenkt
+        p.vx += (fx * FS * 0.25 - ny * p.curve * R * 0.3) * dt + nx * R * 0.3 * Math.max(0, hc - 0.5) * dt;
+        p.vy += (fy * FS * 0.25 + nx * p.curve * R * 0.3) * dt + ny * R * 0.3 * Math.max(0, hc - 0.5) * dt;
+      } else {
+        p.vx += fx * FS * 0.15 * dt; p.vy += fy * FS * 0.15 * dt;
+      }
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      const rr = d / R - 1;
+      if (p.kind === 0) {
+        const al = 0.55 * p.b * Math.sin(Math.PI * k) * Math.exp(-rr * 9);
+        addSoft(p.x, p.y, AMBER, al); addSharp(p.x, p.y, AMBER, al * 0.35);
+      } else {
+        const fade = Math.sin(Math.PI * Math.min(1, k * 1.15)) * Math.exp(-rr * 0.55);
+        const far = Math.min(1, rr / 2.2);
+        const col = far < 0.35 ? mix(AMBER, BEIGE, far / 0.35) : mix(BEIGE, p.warm > 0.5 ? BEIGE : ICE, (far - 0.35) / 0.65);
+        const al = 0.16 * p.b * fade;
+        addSoft(p.x, p.y, col, al); if (Math.random() < 0.15) addSharp(p.x, p.y, col, al * 0.8);
+      }
+    }
+    for (let i = 0, o = 0; i < CW * CH; i++, o += 3) {
+      const q = i * 4; cdata[q] = cacc[o]; cdata[q + 1] = cacc[o + 1]; cdata[q + 2] = cacc[o + 2]; cdata[q + 3] = 255;
+    }
+    clx.putImageData(cimg, 0, 0);
+    x.imageSmoothingEnabled = true;
+    x.drawImage(clayer, 0, 0, W, H);
+    lx.putImageData(img, 0, 0);
+    x.drawImage(layer, 0, 0);
+
+    [[1, 1.8, 0.95, WHITE], [0.988 - 0.006 * Math.sin(t * 0.7), 0.6, 0.3, tint], [1.014 + 0.006 * Math.sin(t * 0.5 + 1), 0.6, 0.22, tint]].forEach(([k, lw, al, col]) => {
+      x.strokeStyle = rgba(col, al); x.lineWidth = lw; x.beginPath(); x.arc(cx, cy, R * k, 0, TAU); x.stroke();
+    });
+    // Glutfuß: der Ring glüht dort heller, wo die Flamme gerade hoch schlägt
+    x.lineWidth = 3;
+    for (let i = 0; i < CELLS; i++) {
+      const e = Math.max(0, heat[i] - 0.35);
+      if (e < 0.02) continue;
+      x.strokeStyle = rgba(GOLD, Math.min(0.7, e * 0.8));
+      x.beginPath(); x.arc(cx, cy, R, i / CELLS * TAU, (i + 1.2) / CELLS * TAU); x.stroke();
+    }
+
+    gx.clearRect(0, 0, glow.width, glow.height);
+    gx.drawImage(cv, 0, 0, glow.width, glow.height);
+    x.globalAlpha = 0.55 + 0.3 * cres; x.imageSmoothingEnabled = true;
+    x.drawImage(glow, 0, 0, W, H); x.globalAlpha = 1; x.globalCompositeOperation = 'source-over';
+
+    // Schwarzes Loch: kein Staub, kein Glow im Inneren
+    x.fillStyle = '#000'; x.beginPath(); x.arc(cx, cy, R * 0.992, 0, TAU); x.fill();
+    x.strokeStyle = rgba(WHITE, 0.95); x.lineWidth = 1.8; x.beginPath(); x.arc(cx, cy, R, 0, TAU); x.stroke();
+
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
