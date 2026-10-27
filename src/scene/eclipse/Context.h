@@ -16,6 +16,7 @@ struct Context
   float M = 0.7f;                                                   // Musik-Intensität
   float flame = 1.0f, waves = 1.0f, particles = 1.0f, corona = 1.0f; // Elementregler 0..1
   float flowT = 0.0f, flowStrength = 0.0f;
+  float flowTempo = 1.0f; // wie schnell freier Staub der Strömung folgt (Regler Strömung: Tempo)
   float reach = 1.0f; // wie weit freier Staub treibt und wie lange er lebt
   int palette = 0;    // Farbschema, siehe PaletteFor()
   int maxParticles = 42000;

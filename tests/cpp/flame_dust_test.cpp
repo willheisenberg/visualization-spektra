@@ -170,3 +170,29 @@ TEST(DustPoolTest, ReachScalesTheLifeOfReleasedDust)
   };
   EXPECT_NEAR(longest(2.0f), 2.0f * longest(1.0f), 1e-3f);
 }
+
+TEST(DustPoolTest, FlowTempoSpeedsUpTheDust)
+{
+  auto travelled = [](float tempo) {
+    Random rng(5);
+    DustPool pool(rng);
+    Context c;
+    c.flowStrength = c.R * 0.6f;
+    c.flowTempo = tempo;
+    const float x0 = c.cx + c.R * 1.6f, y0 = c.cy + c.R * 0.4f;
+    pool.Add({x0, y0, 0.0f, 0.0f, 9.0f, 9.0f, true, 1});
+    DrawList out;
+    float path = 0.0f, px = x0, py = y0;
+    for (int i = 0; i < 30; ++i)
+    {
+      pool.Step(c, out);
+      const Grain& g = pool.Grains().front();
+      path += std::hypot(g.x - px, g.y - py);
+      px = g.x;
+      py = g.y;
+    }
+    return path;
+  };
+  EXPECT_GT(travelled(2.0f), 1.5f * travelled(1.0f));
+  EXPECT_LT(travelled(0.0f), 0.6f * travelled(1.0f));
+}

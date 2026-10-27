@@ -95,7 +95,8 @@ const Features& AudioAnalyzer::Update(const std::vector<float>& linear, const st
     if (sens > 0.0f && e > s.avg * ratio && e > s.longAvg * 0.5f && e > s.prev && t - s.last > spec.cool)
     {
       s.last = t;
-      m_features.onset[i] = Clamp01((e / std::max(s.avg, 1e-4f) - 1.0f) * 0.9f * sens) * m;
+      // die Schwelle bestimmt auch die Stärke: hoch = schwächere Anschläge, niedrig = kräftigere
+      m_features.onset[i] = Clamp01((e / std::max(s.avg, 1e-4f) - 1.0f) * 0.9f * sens / m_onset) * m;
     }
     s.avg += (e - s.avg) * Approach(dt, spec.avgTau);
     s.prev = e;

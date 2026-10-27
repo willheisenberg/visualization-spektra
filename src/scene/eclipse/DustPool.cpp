@@ -55,7 +55,8 @@ void DustPool::Step(const Context& c, DrawList& out)
     {
       // freie Körner folgen der Strömung und driften langsam nach außen
       const float drift = c.R * 0.18f * c.reach;
-      const float tx = fx * c.flowStrength + nx * drift, ty = fy * c.flowStrength + ny * drift;
+      const float flow = c.flowStrength * c.flowTempo;
+      const float tx = fx * flow + nx * drift, ty = fy * flow + ny * drift;
       p.vx += (tx - p.vx) * 1.6f * c.dt;
       p.vy += (ty - p.vy) * 1.6f * c.dt;
     }

@@ -208,3 +208,19 @@ TEST(AudioAnalyzerTest, HigherOnsetThresholdIgnoresSoftHits)
   EXPECT_GT(count(1.0f), 5);
   EXPECT_EQ(count(2.0f), 0);
 }
+
+TEST(AudioAnalyzerTest, OnsetThresholdScalesHitStrength)
+{
+  const auto base = Bins({{600.0f, 2800.0f, 0.1f}});
+  const auto hit = Bins({{600.0f, 2800.0f, 0.18f}}); // 1,8-fach: zählt auch bei doppelter Schwelle
+  auto strength = [&](float threshold) {
+    Runner r;
+    r.analyzer.SetIntensity(0.5f);
+    r.analyzer.SetTuning({1.0f, 1.0f, 1.0f, 1.0f}, 1.0f, threshold);
+    r.Run(base, 3.0);
+    return r.Step(hit).onset[kMid];
+  };
+  EXPECT_GT(strength(0.5f), strength(1.0f) * 1.3f);
+  EXPECT_LT(strength(2.0f), strength(1.0f) * 0.7f);
+  EXPECT_GT(strength(2.0f), 0.0f);
+}

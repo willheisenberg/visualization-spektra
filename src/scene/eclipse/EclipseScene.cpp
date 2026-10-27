@@ -134,7 +134,8 @@ void EclipseScene::Frame(const Features& f, const Settings& s, float dt, DrawLis
 
   // Strömung
   const float flowLevel = RoutedLevel(s, f, kFlow);
-  m_flowT += dt * (0.4f + 1.6f * flowLevel) * (static_cast<float>(s.flowSpeed) / 100.0f);
+  c.flowTempo = static_cast<float>(s.flowSpeed) / 100.0f;
+  m_flowT += dt * (0.4f + 1.6f * flowLevel) * c.flowTempo;
   c.flowT = Phase(m_flowT);
   c.flowStrength = c.R * (0.3f + 0.55f * flowLevel) * (static_cast<float>(s.flowStrength) / 100.0f);
   m_dust.Step(c, out);
