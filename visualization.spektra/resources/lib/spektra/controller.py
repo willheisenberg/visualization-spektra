@@ -91,3 +91,6 @@ class Controller:
 
     def _menu(self, _command):
         raise CommandError("invalid_command")  # das Menü läuft in default.py, nicht im Service
+
+    def _calibrate(self, _command):
+        raise CommandError("invalid_command")  # das Kalibrierfenster ebenso

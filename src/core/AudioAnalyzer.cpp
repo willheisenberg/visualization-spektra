@@ -51,6 +51,14 @@ void AudioAnalyzer::SetIntensity(float m)
   m_intensity = std::min(1.0f, std::max(0.01f, m));
 }
 
+void AudioAnalyzer::SetTuning(const std::array<float, kBandCount>& sensitivity, float response, float onset)
+{
+  for (int i = 0; i < kBandCount; ++i)
+    m_sensitivity[i] = std::max(0.0f, sensitivity[i]);
+  m_response = std::max(0.05f, response);
+  m_onset = std::max(0.05f, onset);
+}
+
 void AudioAnalyzer::Rebase()
 {
   for (auto& b : m_bands)
@@ -77,15 +85,17 @@ const Features& AudioAnalyzer::Update(const std::vector<float>& linear, const st
       s.longAvg = e;
     s.longAvg += (e - s.longAvg) * Approach(dt, e > s.longAvg * 2.5f ? 0.8f : 8.0f);
     const float norm = e < 1e-4f ? 0.0f : Clamp01(e / (s.longAvg * 1.7f + 1e-4f));
-    const float target = std::pow(norm, 1.3f) * gain;
+    const float sens = m_sensitivity[i];
+    const float target = std::min(1.0f, std::pow(norm, 1.3f) * gain * sens);
     float& level = m_features.level[i];
-    level += (target - level) * (target > level ? 0.6f : Approach(dt, spec.rel));
+    level += (target - level) * (target > level ? 0.6f : Approach(dt, spec.rel * m_response));
 
     m_features.onset[i] = 0.0f;
-    if (e > s.avg * spec.ratio && e > s.longAvg * 0.5f && e > s.prev && t - s.last > spec.cool)
+    const float ratio = 1.0f + (spec.ratio - 1.0f) * m_onset;
+    if (sens > 0.0f && e > s.avg * ratio && e > s.longAvg * 0.5f && e > s.prev && t - s.last > spec.cool)
     {
       s.last = t;
-      m_features.onset[i] = Clamp01((e / std::max(s.avg, 1e-4f) - 1.0f) * 0.9f) * m;
+      m_features.onset[i] = Clamp01((e / std::max(s.avg, 1e-4f) - 1.0f) * 0.9f * sens) * m;
     }
     s.avg += (e - s.avg) * Approach(dt, spec.avgTau);
     s.prev = e;

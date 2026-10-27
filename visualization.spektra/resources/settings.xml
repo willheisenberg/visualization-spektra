@@ -5,6 +5,7 @@
     <setting id="autoopen" type="bool" label="32002" default="true" />
     <setting id="scene" type="select" label="32003" values="eclipse" default="eclipse" />
     <setting id="intensity" type="slider" label="32004" range="1,1,100" option="int" default="70" />
+    <setting id="calibrate" type="action" label="32086" action="RunAddon(visualization.spektra,action=calibrate)" option="close" />
     <setting id="menu" type="action" label="32084" action="RunAddon(visualization.spektra,action=menu)" option="close" />
     <setting id="reset" type="action" label="32085" action="RunAddon(visualization.spektra,action=reset)" option="close" />
   </category>
@@ -15,6 +16,12 @@
     <setting id="eclipse.corona" type="slider" label="32014" range="0,1,100" option="int" default="100" />
     <setting id="eclipse.pixel" type="enum" label="32015" lvalues="32020|32021|32022|32023|32024|32025|32026|32027|32028" default="2" />
     <setting id="eclipse.drop" type="bool" label="32016" default="true" />
+    <setting id="eclipse.size" type="slider" label="32017" range="50,5,150" option="int" default="100" />
+    <setting id="eclipse.pulse" type="slider" label="32018" range="0,10,300" option="int" default="100" />
+    <setting id="eclipse.palette" type="enum" label="32019" lvalues="32100|32101|32102|32103" default="0" />
+    <setting id="eclipse.flowstrength" type="slider" label="32041" range="0,10,200" option="int" default="100" />
+    <setting id="eclipse.flowspeed" type="slider" label="32042" range="0,10,200" option="int" default="100" />
+    <setting id="eclipse.reach" type="slider" label="32043" range="25,5,200" option="int" default="100" />
   </category>
   <category label="32030">
     <setting type="lsep" label="32031" />
@@ -67,6 +74,14 @@
     <setting id="eclipse.route.dust.low" type="bool" label="32051" default="false" />
     <setting id="eclipse.route.dust.mid" type="bool" label="32052" default="false" />
     <setting id="eclipse.route.dust.high" type="bool" label="32053" default="true" />
+  </category>
+  <category label="32070">
+    <setting id="sensitivity.bass" type="slider" label="32071" range="0,5,200" option="int" default="100" />
+    <setting id="sensitivity.low" type="slider" label="32072" range="0,5,200" option="int" default="100" />
+    <setting id="sensitivity.mid" type="slider" label="32073" range="0,5,200" option="int" default="100" />
+    <setting id="sensitivity.high" type="slider" label="32074" range="0,5,200" option="int" default="100" />
+    <setting id="response" type="slider" label="32075" range="25,5,400" option="int" default="100" />
+    <setting id="onset" type="slider" label="32076" range="50,5,200" option="int" default="100" />
   </category>
   <category label="32060">
     <setting id="maxparticles" type="slider" label="32061" range="10000,1000,60000" option="int" default="42000" />

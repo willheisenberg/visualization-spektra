@@ -29,7 +29,15 @@ Array von `key=value`-Strings.
 | `eclipse.flame`, `eclipse.waves`, `eclipse.particles`, `eclipse.corona` | 0–100 | 100 |
 | `eclipse.pixel` | 0–8 = 0,5× · 0,75× · 1× · 1,5× · 2× · 3× · 4× · 6× · 8× | 2 (1×) |
 | `eclipse.drop` | `true`/`false` | `true` |
+| `eclipse.size` | 50–150 (Sonnengröße, %) | 100 |
+| `eclipse.pulse` | 0–300 (Pulsieren, %) | 100 |
+| `eclipse.palette` | 0–3 = Feuer · Eis · Glut · Silber | 0 |
+| `eclipse.flowstrength`, `eclipse.flowspeed` | 0–200 (Strömung: Stärke, Tempo, %) | 100 |
+| `eclipse.reach` | 25–200 (Reichweite des Staubs, %) | 100 |
 | `eclipse.route.<effekt>.<band>` | `true`/`false` | siehe unten |
+| `sensitivity.bass`, `.low`, `.mid`, `.high` | 0–200 (Empfindlichkeit je Band, %) | 100 |
+| `response` | 25–400 (Nachklingen, %) | 100 |
+| `onset` | 50–200 (Anschlag-Schwelle, %) | 100 |
 | `maxparticles` | 10000–60000 | 42000 |
 
 Effekte: `breath` (Ring atmet), `flame` (Flammenhöhe), `corona` (Corona-Stärke), `free` (Staub löst

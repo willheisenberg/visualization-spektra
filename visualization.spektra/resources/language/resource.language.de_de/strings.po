@@ -195,3 +195,83 @@ msgstr "Ungültiger Wert."
 msgctxt "#32093"
 msgid "The Spektra service is not ready yet. Please wait."
 msgstr "Der Spektra-Service ist noch nicht bereit. Bitte kurz warten."
+
+msgctxt "#32017"
+msgid "Sun size (%)"
+msgstr "Sonnengröße (%)"
+
+msgctxt "#32018"
+msgid "Pulse strength (%)"
+msgstr "Pulsieren (%)"
+
+msgctxt "#32019"
+msgid "Colour scheme"
+msgstr "Farbschema"
+
+msgctxt "#32041"
+msgid "Flow: strength (%)"
+msgstr "Strömung: Stärke (%)"
+
+msgctxt "#32042"
+msgid "Flow: tempo (%)"
+msgstr "Strömung: Tempo (%)"
+
+msgctxt "#32043"
+msgid "Dust reach (%)"
+msgstr "Reichweite des Staubs (%)"
+
+msgctxt "#32070"
+msgid "Audio"
+msgstr "Audio"
+
+msgctxt "#32071"
+msgid "Sensitivity bass (%)"
+msgstr "Empfindlichkeit Bass (%)"
+
+msgctxt "#32072"
+msgid "Sensitivity lows (%)"
+msgstr "Empfindlichkeit Tiefen (%)"
+
+msgctxt "#32073"
+msgid "Sensitivity mids (%)"
+msgstr "Empfindlichkeit Mitten (%)"
+
+msgctxt "#32074"
+msgid "Sensitivity highs (%)"
+msgstr "Empfindlichkeit Höhen (%)"
+
+msgctxt "#32075"
+msgid "Decay time (%)"
+msgstr "Nachklingen (%)"
+
+msgctxt "#32076"
+msgid "Hit threshold (%)"
+msgstr "Anschlag-Schwelle (%)"
+
+msgctxt "#32100"
+msgid "Fire (default)"
+msgstr "Feuer (Standard)"
+
+msgctxt "#32101"
+msgid "Ice"
+msgstr "Eis"
+
+msgctxt "#32102"
+msgid "Ember"
+msgstr "Glut"
+
+msgctxt "#32103"
+msgid "Silver"
+msgstr "Silber"
+
+msgctxt "#32086"
+msgid "Calibrate …"
+msgstr "Kalibrieren …"
+
+msgctxt "#32087"
+msgid "Left/right: change · Back: close"
+msgstr "Links/rechts: ändern · Zurück: schließen"
+
+msgctxt "#32095"
+msgid "Start some music first, then calibrate."
+msgstr "Zum Kalibrieren zuerst Musik starten."

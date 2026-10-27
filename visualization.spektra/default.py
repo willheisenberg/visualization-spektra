@@ -16,6 +16,8 @@ def main():
         command = parse_args(sys.argv[1:])
         if command.action == "menu":
             ui.menu()
+        elif command.action == "calibrate":
+            ui.calibrate()
         else:
             send(command.to_data())
     except CommandError as exc:

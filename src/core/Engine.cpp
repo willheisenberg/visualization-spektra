@@ -47,6 +47,9 @@ const Features& Engine::Tick()
 
   CheckLiveSettings(now);
   m_analyzer.SetIntensity(m_settings.intensity / 100.0f);
+  m_analyzer.SetTuning({m_settings.sensBass / 100.0f, m_settings.sensLow / 100.0f, m_settings.sensMid / 100.0f,
+                        m_settings.sensHigh / 100.0f},
+                       m_settings.response / 100.0f, m_settings.onset / 100.0f);
 
   double lastPush;
   {
@@ -89,7 +92,7 @@ void Engine::ReplaceSettings(const Settings& settings)
 
 void Engine::CheckLiveSettings(double now)
 {
-  if (now - m_lastLiveCheck < 1.0)
+  if (now - m_lastLiveCheck < 0.2) // beim Kalibrieren soll jede Änderung sofort sichtbar sein
     return;
   m_lastLiveCheck = now;
   const auto live = ReadLiveSettings(m_config.stateDirectory + "/live.json", m_settings);

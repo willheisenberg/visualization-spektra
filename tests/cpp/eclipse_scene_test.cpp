@@ -2,7 +2,9 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cmath>
+#include <vector>
 
 using namespace spektra;
 
@@ -159,4 +161,53 @@ TEST(EclipseSceneTest, WavesStillExpireAfterDaysOfRuntime)
     scene.Frame(f, settings, 1.0f / 60.0f, out);
   }
   EXPECT_LE(scene.WaveCount(), 16u);
+}
+
+TEST(EclipseSceneTest, SizeScalesTheSun)
+{
+  SceneRun normal, big;
+  big.settings.size = 150;
+  for (SceneRun* r : {&normal, &big})
+  {
+    r->scene.SetViewport(1280.0f, 720.0f);
+    r->Frames(1, Features{});
+  }
+  EXPECT_NEAR(big.out.holeRadius, 1.5f * normal.out.holeRadius, 0.5f);
+}
+
+TEST(EclipseSceneTest, PulseZeroKeepsTheSunStill)
+{
+  auto spread = [](int pulse) {
+    SceneRun r;
+    r.settings.pulse = pulse;
+    r.scene.SetViewport(1280.0f, 720.0f);
+    float lo = 1e9f, hi = 0.0f;
+    for (int i = 0; i < 240; ++i)
+    {
+      r.Frames(1, Loud(), i % 30 == 0 ? 1 : 0, {kBass});
+      lo = std::min(lo, r.out.holeRadius);
+      hi = std::max(hi, r.out.holeRadius);
+    }
+    return hi - lo;
+  };
+  EXPECT_NEAR(spread(0), 0.0f, 1e-3f);
+  EXPECT_GT(spread(300), 2.5f * spread(100));
+}
+
+TEST(EclipseSceneTest, PaletteChangesTheDustColours)
+{
+  auto meanBlueShare = [](int palette) {
+    SceneRun r;
+    r.settings.palette = palette;
+    r.scene.SetViewport(1280.0f, 720.0f);
+    r.Frames(120, Loud(), 20);
+    double blue = 0.0, all = 0.0;
+    for (const auto& d : r.out.dust)
+    {
+      blue += d.b;
+      all += d.r + d.g + d.b;
+    }
+    return all > 0.0 ? blue / all : 0.0;
+  };
+  EXPECT_GT(meanBlueShare(1), meanBlueShare(0) + 0.05); // Eis ist blauer als Feuer
 }

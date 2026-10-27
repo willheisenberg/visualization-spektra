@@ -195,3 +195,83 @@ msgstr ""
 msgctxt "#32093"
 msgid "The Spektra service is not ready yet. Please wait."
 msgstr ""
+
+msgctxt "#32017"
+msgid "Sun size (%)"
+msgstr ""
+
+msgctxt "#32018"
+msgid "Pulse strength (%)"
+msgstr ""
+
+msgctxt "#32019"
+msgid "Colour scheme"
+msgstr ""
+
+msgctxt "#32041"
+msgid "Flow: strength (%)"
+msgstr ""
+
+msgctxt "#32042"
+msgid "Flow: tempo (%)"
+msgstr ""
+
+msgctxt "#32043"
+msgid "Dust reach (%)"
+msgstr ""
+
+msgctxt "#32070"
+msgid "Audio"
+msgstr ""
+
+msgctxt "#32071"
+msgid "Sensitivity bass (%)"
+msgstr ""
+
+msgctxt "#32072"
+msgid "Sensitivity lows (%)"
+msgstr ""
+
+msgctxt "#32073"
+msgid "Sensitivity mids (%)"
+msgstr ""
+
+msgctxt "#32074"
+msgid "Sensitivity highs (%)"
+msgstr ""
+
+msgctxt "#32075"
+msgid "Decay time (%)"
+msgstr ""
+
+msgctxt "#32076"
+msgid "Hit threshold (%)"
+msgstr ""
+
+msgctxt "#32100"
+msgid "Fire (default)"
+msgstr ""
+
+msgctxt "#32101"
+msgid "Ice"
+msgstr ""
+
+msgctxt "#32102"
+msgid "Ember"
+msgstr ""
+
+msgctxt "#32103"
+msgid "Silver"
+msgstr ""
+
+msgctxt "#32086"
+msgid "Calibrate …"
+msgstr ""
+
+msgctxt "#32087"
+msgid "Left/right: change · Back: close"
+msgstr ""
+
+msgctxt "#32095"
+msgid "Start some music first, then calibrate."
+msgstr ""

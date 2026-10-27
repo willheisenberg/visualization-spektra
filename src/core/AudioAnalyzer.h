@@ -31,6 +31,9 @@ class AudioAnalyzer
 {
 public:
   void SetIntensity(float m);
+  // Empfindlichkeit je Band (1 = Standard), Nachklingen (Faktor auf die Abklingzeit) und
+  // Anschlag-Schwelle (Faktor auf den Anstieg über den Mittelwert, ab dem ein Anschlag zählt).
+  void SetTuning(const std::array<float, kBandCount>& sensitivity, float response, float onset);
   float Intensity() const { return m_intensity; }
 
   const Features& Update(const std::vector<float>& linear, const std::vector<float>& normalized, float binHz,
@@ -48,6 +51,8 @@ private:
   };
 
   float m_intensity = 0.7f;
+  std::array<float, kBandCount> m_sensitivity{1.0f, 1.0f, 1.0f, 1.0f};
+  float m_response = 1.0f, m_onset = 1.0f;
   Features m_features;
   std::array<BandState, kBandCount> m_bands{};
   std::array<float, kFineBands> m_finePeak{};

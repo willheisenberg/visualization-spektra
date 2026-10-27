@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Kalibrierfenster über der laufenden Visualisierung (ui.CalibrationDialog).
+     Window.Property(adjusting): während Links/Rechts nur die Leiste unten, sonst die Liste. -->
+<window>
+  <defaultcontrol always="true">100</defaultcontrol>
+  <controls>
+    <control type="group">
+      <visible>String.IsEmpty(Window.Property(adjusting))</visible>
+      <left>60</left>
+      <top>90</top>
+      <width>760</width>
+      <height>900</height>
+      <control type="image">
+        <width>760</width>
+        <height>900</height>
+        <texture colordiffuse="D0000000">spektra-white.png</texture>
+      </control>
+      <control type="label">
+        <left>30</left>
+        <top>20</top>
+        <width>700</width>
+        <height>50</height>
+        <font>font13</font>
+        <textcolor>FFFFFFFF</textcolor>
+        <label>$ADDON[visualization.spektra 32086]</label>
+      </control>
+      <control type="list" id="100">
+        <left>0</left>
+        <top>80</top>
+        <width>760</width>
+        <height>748</height>
+        <onleft>100</onleft>
+        <onright>100</onright>
+        <onup>100</onup>
+        <ondown>100</ondown>
+        <scrolltime>120</scrolltime>
+        <itemlayout height="44" width="760">
+          <control type="label">
+            <left>30</left>
+            <width>410</width>
+            <height>44</height>
+            <font>font13</font>
+            <aligny>center</aligny>
+            <textcolor>FFC8C8C8</textcolor>
+            <label>$INFO[ListItem.Label]</label>
+          </control>
+          <control type="label">
+            <left>440</left>
+            <width>290</width>
+            <height>44</height>
+            <font>font13</font>
+            <align>right</align>
+            <aligny>center</aligny>
+            <textcolor>FFC8C8C8</textcolor>
+            <label>$INFO[ListItem.Label2]</label>
+          </control>
+        </itemlayout>
+        <focusedlayout height="44" width="760">
+          <control type="image">
+            <left>10</left>
+            <width>740</width>
+            <height>44</height>
+            <texture colordiffuse="FF0B3D5C">spektra-white.png</texture>
+          </control>
+          <control type="label">
+            <left>30</left>
+            <width>410</width>
+            <height>44</height>
+            <font>font13</font>
+            <aligny>center</aligny>
+            <textcolor>FFFFFFFF</textcolor>
+            <label>$INFO[ListItem.Label]</label>
+          </control>
+          <control type="label">
+            <left>440</left>
+            <width>290</width>
+            <height>44</height>
+            <font>font13</font>
+            <align>right</align>
+            <aligny>center</aligny>
+            <textcolor>FFFFFFFF</textcolor>
+            <label>&lt;  $INFO[ListItem.Label2]  &gt;</label>
+          </control>
+        </focusedlayout>
+      </control>
+      <control type="label">
+        <left>30</left>
+        <top>840</top>
+        <width>700</width>
+        <height>44</height>
+        <font>font13</font>
+        <textcolor>FF9A9A9A</textcolor>
+        <label>$ADDON[visualization.spektra 32087]</label>
+      </control>
+    </control>
+    <control type="group">
+      <visible>!String.IsEmpty(Window.Property(adjusting))</visible>
+      <left>360</left>
+      <top>960</top>
+      <width>1200</width>
+      <height>80</height>
+      <control type="image">
+        <width>1200</width>
+        <height>80</height>
+        <texture colordiffuse="E0000000">spektra-white.png</texture>
+      </control>
+      <control type="label">
+        <left>40</left>
+        <width>800</width>
+        <height>80</height>
+        <font>font13</font>
+        <aligny>center</aligny>
+        <textcolor>FFFFFFFF</textcolor>
+        <label>$INFO[Window.Property(bar.label)]</label>
+      </control>
+      <control type="label">
+        <left>840</left>
+        <width>320</width>
+        <height>80</height>
+        <font>font13</font>
+        <align>right</align>
+        <aligny>center</aligny>
+        <textcolor>FFFFFFFF</textcolor>
+        <label>&lt;  $INFO[Window.Property(bar.value)]  &gt;</label>
+      </control>
+    </control>
+  </controls>
+</window>

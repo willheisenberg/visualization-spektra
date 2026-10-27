@@ -94,7 +94,7 @@ void Flame::Emit(const Context& c, float flameLevel, float freeLevel, float loud
       const float aa = a + (m_rng.Uniform() - 0.5f) * (kTau / kCells) * 1.5f;
       const float speed = c.R * (0.3f + m_rng.Uniform() * 1.4f) * power;
       const bool free = m_rng.Uniform() < freeP;
-      const float life = free ? 2.5f + m_rng.Uniform() * 3.0f : 0.5f + m_rng.Uniform() * 0.9f * std::min(1.0f, power);
+      const float life = free ? (2.5f + m_rng.Uniform() * 3.0f) * c.reach : 0.5f + m_rng.Uniform() * 0.9f * std::min(1.0f, power);
       const float r0 = c.R * (1.0f + m_rng.Uniform() * 0.01f);
       const float push = free ? 1.2f : 1.0f;
       pool.Add({c.cx + std::cos(aa) * r0, c.cy + std::sin(aa) * r0, std::cos(aa) * speed * push,

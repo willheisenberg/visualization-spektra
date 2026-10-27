@@ -31,6 +31,18 @@ TEST(SettingsTest, DefaultsMatchSpec)
   EXPECT_FLOAT_EQ(kPixelSteps[s.pixel], 1.0f);
   EXPECT_TRUE(s.drop);
   EXPECT_EQ(s.maxParticles, 42000);
+  EXPECT_EQ(s.size, 100);
+  EXPECT_EQ(s.pulse, 100);
+  EXPECT_EQ(s.palette, 0);
+  EXPECT_EQ(s.flowStrength, 100);
+  EXPECT_EQ(s.flowSpeed, 100);
+  EXPECT_EQ(s.reach, 100);
+  EXPECT_EQ(s.sensBass, 100);
+  EXPECT_EQ(s.sensLow, 100);
+  EXPECT_EQ(s.sensMid, 100);
+  EXPECT_EQ(s.sensHigh, 100);
+  EXPECT_EQ(s.response, 100);
+  EXPECT_EQ(s.onset, 100);
   const int expected[kEffectCount] = {kBass, kLow, kMid, kHigh, kHigh, kBass, kMid, kLow, kMid, kHigh};
   for (int e = 0; e < kEffectCount; ++e)
     for (int b = 0; b < kBandCount; ++b)
@@ -39,7 +51,9 @@ TEST(SettingsTest, DefaultsMatchSpec)
 
 TEST(SettingsTest, KeysAreCompleteAndTyped)
 {
-  EXPECT_EQ(SettingKeys().size(), 10u + 40u + 1u);
+  EXPECT_EQ(SettingKeys().size(), 10u + 6u + 40u + 6u + 1u);
+  EXPECT_EQ(TypeOf("sensitivity.high"), SettingType::Int);
+  EXPECT_EQ(TypeOf("eclipse.palette"), SettingType::Int);
   EXPECT_EQ(TypeOf("intensity"), SettingType::Int);
   EXPECT_EQ(TypeOf("eclipse.route.wave.bass"), SettingType::Bool);
   EXPECT_EQ(TypeOf("scene"), SettingType::String);
@@ -143,4 +157,30 @@ TEST(SettingsTest, SettingsXmlMatchesDefaults)
   for (auto it = std::sregex_iterator(xml.begin(), xml.end(), re); it != std::sregex_iterator(); ++it, ++seen)
     EXPECT_EQ((*it)[2].str(), SettingValue(defaults, (*it)[1].str())) << (*it)[1].str();
   EXPECT_EQ(seen, SettingKeys().size());
+}
+
+TEST(SettingsTest, TuningKeysClampToTheirRanges)
+{
+  auto s = Settings::Defaults();
+  const struct
+  {
+    const char* key;
+    int Settings::*field;
+    int min, max;
+  } specs[] = {
+      {"eclipse.size", &Settings::size, 50, 150},          {"eclipse.pulse", &Settings::pulse, 0, 300},
+      {"eclipse.palette", &Settings::palette, 0, 3},       {"eclipse.flowstrength", &Settings::flowStrength, 0, 200},
+      {"eclipse.flowspeed", &Settings::flowSpeed, 0, 200}, {"eclipse.reach", &Settings::reach, 25, 200},
+      {"sensitivity.bass", &Settings::sensBass, 0, 200},   {"sensitivity.low", &Settings::sensLow, 0, 200},
+      {"sensitivity.mid", &Settings::sensMid, 0, 200},     {"sensitivity.high", &Settings::sensHigh, 0, 200},
+      {"response", &Settings::response, 25, 400},          {"onset", &Settings::onset, 50, 200},
+  };
+  for (const auto& spec : specs)
+  {
+    EXPECT_EQ(ApplySetting(s, spec.key, "-5"), ApplyResult::Ok) << spec.key;
+    EXPECT_EQ(s.*spec.field, spec.min) << spec.key;
+    EXPECT_EQ(ApplySetting(s, spec.key, "9999"), ApplyResult::Ok) << spec.key;
+    EXPECT_EQ(s.*spec.field, spec.max) << spec.key;
+    EXPECT_EQ(SettingValue(s, spec.key), std::to_string(spec.max)) << spec.key;
+  }
 }

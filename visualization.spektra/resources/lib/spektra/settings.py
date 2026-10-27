@@ -37,9 +37,19 @@ def _schema():
         schema[f"eclipse.{element}"] = Spec("int", 100, 0, 100)
     schema["eclipse.pixel"] = Spec("int", 2, 0, 8)
     schema["eclipse.drop"] = Spec("bool", True)
+    schema["eclipse.size"] = Spec("int", 100, 50, 150)
+    schema["eclipse.pulse"] = Spec("int", 100, 0, 300)
+    schema["eclipse.palette"] = Spec("int", 0, 0, 3)
+    schema["eclipse.flowstrength"] = Spec("int", 100, 0, 200)
+    schema["eclipse.flowspeed"] = Spec("int", 100, 0, 200)
+    schema["eclipse.reach"] = Spec("int", 100, 25, 200)
     for effect in EFFECTS:
         for band in BANDS:
             schema[f"eclipse.route.{effect}.{band}"] = Spec("bool", DEFAULT_ROUTE[effect] == band)
+    for band in BANDS:
+        schema[f"sensitivity.{band}"] = Spec("int", 100, 0, 200)
+    schema["response"] = Spec("int", 100, 25, 400)
+    schema["onset"] = Spec("int", 100, 50, 200)
     schema["maxparticles"] = Spec("int", 42000, 10000, 60000)
     return schema
 

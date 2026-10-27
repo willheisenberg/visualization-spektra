@@ -20,7 +20,7 @@ void DustPool::Release(const Context& c, float strength, int spots)
     {
       const float a = a0 + m_rng.Gauss() * 0.08f, r0 = c.R * 1.01f;
       const float speed = c.R * (0.4f + m_rng.Uniform() * 0.9f) * (0.6f + strength);
-      const float life = 2.0f + m_rng.Uniform() * 3.0f;
+      const float life = (2.0f + m_rng.Uniform() * 3.0f) * c.reach;
       m_grains.push_back({c.cx + std::cos(a) * r0, c.cy + std::sin(a) * r0, std::cos(a) * speed,
                           std::sin(a) * speed, life, life, true, m_rng.Uniform() < 0.9f ? 1 : 2});
     }
@@ -54,7 +54,8 @@ void DustPool::Step(const Context& c, DrawList& out)
     if (p.free)
     {
       // freie Körner folgen der Strömung und driften langsam nach außen
-      const float tx = fx * c.flowStrength + nx * c.R * 0.18f, ty = fy * c.flowStrength + ny * c.R * 0.18f;
+      const float drift = c.R * 0.18f * c.reach;
+      const float tx = fx * c.flowStrength + nx * drift, ty = fy * c.flowStrength + ny * drift;
       p.vx += (tx - p.vx) * 1.6f * c.dt;
       p.vy += (ty - p.vy) * 1.6f * c.dt;
     }
@@ -71,7 +72,7 @@ void DustPool::Step(const Context& c, DrawList& out)
     const float k = 1.0f - p.life / p.max;
     const float h = p.free ? 0.35f + k * 0.6f : std::min(1.0f, (d - c.R) / (c.R * 0.9f)) * 0.75f + k * 0.25f;
     const float alpha = p.free ? std::min(1.0f, p.life) * 0.55f * c.particles : (1.0f - k * k) * 0.75f * c.flame;
-    out.dust.push_back(MakeDust(p.x, p.y, p.size, FireColor(h), alpha));
+    out.dust.push_back(MakeDust(p.x, p.y, p.size, FireColor(PaletteFor(c.palette), h), alpha));
   }
 }
 

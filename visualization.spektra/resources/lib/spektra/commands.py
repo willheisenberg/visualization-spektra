@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-ACTIONS = ("on", "off", "toggle", "set", "reset", "scene", "status", "menu")
+ACTIONS = ("on", "off", "toggle", "set", "reset", "scene", "status", "menu", "calibrate")
 FIELDS = ("action", "key", "value", "name")
 
 

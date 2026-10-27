@@ -129,6 +129,11 @@ class ControllerTest(unittest.TestCase):
         self.controller.command(Command("menu"))
         self.assertEqual(self.last()["error"], "invalid_command")
 
+    def test_calibrate_is_not_a_service_command(self):
+        # das Kalibrierfenster läuft in default.py am Fernseher, nicht im Service
+        self.controller.command(Command("calibrate"))
+        self.assertEqual(self.last()["error"], "invalid_command")
+
     def test_open_settings_dialog_does_not_hide_the_new_value(self):
         # Bei offenem Einstellungsdialog speichert Kodi setSetting erst beim Schließen.
         original = self.adapter.set_setting

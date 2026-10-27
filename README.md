@@ -54,9 +54,26 @@ From the next track on, Spektra opens the full-screen visualisation by itself.
 | Eclipse | Flame, waves, free particles, corona (0–100 % each) | 100 % |
 | Eclipse | Pixel size: 0.5× (fine dust) … 8× (coarse blocks) | 1× |
 | Eclipse | Drop effect – a kick after a bass-less passage fires everything at once | on |
+| Eclipse | Sun size (50–150 %) | 100 % |
+| Eclipse | Pulse strength (0–300 %) – how much the sun breathes and swells on beats | 100 % |
+| Eclipse | Colour scheme: fire, ice, ember, silver | fire |
+| Eclipse | Flow: strength and tempo (0–200 % each) – how hard and how fast the dust swirls | 100 % |
+| Eclipse | Dust reach (25–200 %) – how far free dust drifts and how long it lives | 100 % |
 | Eclipse: mapping | which band drives which effect (any combination) | see below |
+| Audio | Sensitivity per band: bass, lows, mids, highs (0–200 % each; 0 mutes the band) | 100 % |
+| Audio | Decay time (25–400 %) – how slowly levels fall back | 100 % |
+| Audio | Hit threshold (50–200 %) – higher means fewer hits | 100 % |
 | Performance | Particle limit (10 000–60 000) | 42 000 |
 | General | Reset everything to default | – |
+| General | Calibrate … – adjust the sliders over the running picture (see below) | – |
+
+### Calibrating
+
+**Calibrate …** (in the settings under General, or in the Spektra menu) opens a list of
+all sliders over the running visualisation; music has to be playing. Up/down picks a
+slider, left/right changes it. While you change a value, the list makes way for a slim bar
+at the bottom so you see the picture; it returns 1.5 s after the last press. Back closes
+the window; every change is saved right away.
 
 ### Default mapping
 

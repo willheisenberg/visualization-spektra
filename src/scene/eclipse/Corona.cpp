@@ -47,6 +47,7 @@ void Corona::Drop(float corona)
 
 void Corona::Step(const Context& c, float hold, const Flame& flame, float birth, DrawList& out)
 {
+  const Palette& pal = PaletteFor(c.palette);
   const float target = (0.04f * c.M + 0.9f * hold) * c.corona;
   m_level += (target - m_level) * (1.0f - std::exp(-c.dt / (hold > m_level ? 0.6f : 2.5f)));
   if (c.corona == 0.0f)
@@ -157,8 +158,8 @@ void Corona::Step(const Context& c, float hold, const Flame& flame, float birth,
       p.x = c.cx + std::cos(a) * r;
       p.y = c.cy + std::sin(a) * r;
       const float al = (0.5f * p.b * std::sin(kPi * k) + 0.1f) * birthGlow;
-      soft(p.x, p.y, kAmber, al * 0.6f);
-      sharp(p.x, p.y, kAmber, al * 0.5f);
+      soft(p.x, p.y, pal.coronaNear, al * 0.6f);
+      sharp(p.x, p.y, pal.coronaNear, al * 0.5f);
       continue;
     }
     const float dx = p.x - c.cx, dy = p.y - c.cy;
@@ -193,15 +194,16 @@ void Corona::Step(const Context& c, float hold, const Flame& flame, float birth,
     if (p.kind == kRim)
     {
       const float al = 0.55f * p.b * std::sin(kPi * k) * std::exp(-rr * 9.0f) * birthGlow;
-      soft(p.x, p.y, kAmber, al);
-      sharp(p.x, p.y, kAmber, al * 0.35f);
+      soft(p.x, p.y, pal.coronaNear, al);
+      sharp(p.x, p.y, pal.coronaNear, al * 0.35f);
     }
     else
     {
       const float fade = std::sin(kPi * std::min(1.0f, k * 1.15f)) * std::exp(-rr * 0.55f);
       const float far = std::min(1.0f, rr / 2.2f);
-      const Rgb col = far < 0.35f ? Mix(kAmber, kBeige, far / 0.35f)
-                                  : Mix(kBeige, p.warm > 0.5f ? kBeige : kIce, (far - 0.35f) / 0.65f);
+      const Rgb col = far < 0.35f ? Mix(pal.coronaNear, pal.coronaMid, far / 0.35f)
+                                  : Mix(pal.coronaMid, p.warm > 0.5f ? pal.coronaMid : pal.coronaFar,
+                                        (far - 0.35f) / 0.65f);
       const float al = 0.16f * p.b * fade;
       soft(p.x, p.y, col, al);
       if (m_rng.Uniform() < 0.15f)

@@ -25,7 +25,12 @@ class SettingsTests(unittest.TestCase):
         for effect in settings.EFFECTS:
             for band in settings.BANDS:
                 self.assertIs(d[f"eclipse.route.{effect}.{band}"], expected[effect] == band, (effect, band))
-        self.assertEqual(len(d), 10 + 40 + 1)
+        for key in ("eclipse.size", "eclipse.pulse", "eclipse.flowstrength", "eclipse.flowspeed",
+                    "eclipse.reach", "sensitivity.bass", "sensitivity.low", "sensitivity.mid",
+                    "sensitivity.high", "response", "onset"):
+            self.assertEqual(d[key], 100, key)
+        self.assertEqual(d["eclipse.palette"], 0)
+        self.assertEqual(len(d), 10 + 6 + 40 + 6 + 1)
 
     def test_settings_xml_matches_schema(self):
         xml = (ROOT / "visualization.spektra" / "resources" / "settings.xml").read_text(encoding="utf-8")
@@ -43,7 +48,8 @@ class SettingsTests(unittest.TestCase):
     def test_rejects_bad_values(self):
         for key, text in (("intensity", "0"), ("intensity", "101"), ("intensity", "viel"),
                           ("intensity", "4.5"), ("eclipse.drop", "ja"), ("scene", "matrix"),
-                          ("eclipse.pixel", "9")):
+                          ("eclipse.pixel", "9"), ("eclipse.size", "49"), ("eclipse.palette", "4"),
+                          ("sensitivity.high", "201"), ("response", "24"), ("onset", "201")):
             with self.subTest(key=key, text=text):
                 with self.assertRaises(SettingError) as ctx:
                     settings.parse(key, text)

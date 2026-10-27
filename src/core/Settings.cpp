@@ -28,6 +28,18 @@ constexpr IntSpec kInts[] = {
     {"eclipse.particles", &Settings::particles, 0, 100},
     {"eclipse.corona", &Settings::corona, 0, 100},
     {"eclipse.pixel", &Settings::pixel, 0, 8},
+    {"eclipse.size", &Settings::size, 50, 150},
+    {"eclipse.pulse", &Settings::pulse, 0, 300},
+    {"eclipse.palette", &Settings::palette, 0, 3},
+    {"eclipse.flowstrength", &Settings::flowStrength, 0, 200},
+    {"eclipse.flowspeed", &Settings::flowSpeed, 0, 200},
+    {"eclipse.reach", &Settings::reach, 25, 200},
+    {"sensitivity.bass", &Settings::sensBass, 0, 200},
+    {"sensitivity.low", &Settings::sensLow, 0, 200},
+    {"sensitivity.mid", &Settings::sensMid, 0, 200},
+    {"sensitivity.high", &Settings::sensHigh, 0, 200},
+    {"response", &Settings::response, 25, 400},
+    {"onset", &Settings::onset, 50, 200},
     {"maxparticles", &Settings::maxParticles, 10000, 60000},
 };
 
@@ -108,10 +120,15 @@ const std::vector<std::string>& SettingKeys()
   static const std::vector<std::string> keys = [] {
     std::vector<std::string> k = {"enabled",           "autoopen",       "scene",         "intensity",
                                   "eclipse.flame",     "eclipse.waves",  "eclipse.particles",
-                                  "eclipse.corona",    "eclipse.pixel",  "eclipse.drop"};
+                                  "eclipse.corona",    "eclipse.pixel",  "eclipse.drop",
+                                  "eclipse.size",      "eclipse.pulse",  "eclipse.palette",
+                                  "eclipse.flowstrength", "eclipse.flowspeed", "eclipse.reach"};
     for (int e = 0; e < kEffectCount; ++e)
       for (int b = 0; b < kBandCount; ++b)
         k.push_back(std::string(kRoutePrefix) + kEffectKeys[e] + "." + kBandKeys[b]);
+    for (const char* key : {"sensitivity.bass", "sensitivity.low", "sensitivity.mid", "sensitivity.high", "response",
+                            "onset"})
+      k.push_back(key);
     k.push_back("maxparticles");
     return k;
   }();

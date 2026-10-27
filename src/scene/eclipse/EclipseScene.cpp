@@ -60,9 +60,12 @@ void EclipseScene::Frame(const Features& f, const Settings& s, float dt, DrawLis
   c.particles = static_cast<float>(s.particles) / 100.0f;
   c.corona = static_cast<float>(s.corona) / 100.0f;
   c.maxParticles = s.maxParticles;
+  c.palette = s.palette;
+  c.reach = static_cast<float>(s.reach) / 100.0f;
+  const Palette& pal = PaletteFor(s.palette);
 
   const float loud = f.loudness;
-  const Rgb tint = Mix(kSilver, kGold, 0.15f + 0.35f * loud);
+  const Rgb tint = Mix(pal.tintQuiet, pal.tintLoud, 0.15f + 0.35f * loud);
   const float onWave = RoutedOnset(s, f, kWave), onBurst = RoutedOnset(s, f, kBurst);
   const float onJet = RoutedOnset(s, f, kJet), onStreamer = RoutedOnset(s, f, kStreamer);
   const float onDust = RoutedOnset(s, f, kDust);
@@ -81,8 +84,10 @@ void EclipseScene::Frame(const Features& f, const Settings& s, float dt, DrawLis
     m_flame.PulseProfile(0.45f + 0.8f * onBurst);
   }
   const float birth = static_cast<float>(std::exp(-(m_t - m_beatT) * 3.5));
-  c.R = m_height * 0.19f *
-        (1.0f + 0.05f * RoutedLevel(s, f, kBreath) + 0.035f * birth * c.waves + 0.012f * std::sin(c.t * kTau / 9.0f));
+  const float pulse = static_cast<float>(s.pulse) / 100.0f;
+  c.R = m_height * 0.19f * (static_cast<float>(s.size) / 100.0f) *
+        (1.0f + pulse * (0.05f * RoutedLevel(s, f, kBreath) + 0.035f * birth * c.waves +
+                         0.012f * std::sin(c.t * kTau / 9.0f)));
 
   // Stichflammen
   if (onJet > 0.05f)
@@ -129,9 +134,9 @@ void EclipseScene::Frame(const Features& f, const Settings& s, float dt, DrawLis
 
   // Strömung
   const float flowLevel = RoutedLevel(s, f, kFlow);
-  m_flowT += dt * (0.4f + 1.6f * flowLevel);
+  m_flowT += dt * (0.4f + 1.6f * flowLevel) * (static_cast<float>(s.flowSpeed) / 100.0f);
   c.flowT = Phase(m_flowT);
-  c.flowStrength = c.R * (0.3f + 0.55f * flowLevel);
+  c.flowStrength = c.R * (0.3f + 0.55f * flowLevel) * (static_cast<float>(s.flowStrength) / 100.0f);
   m_dust.Step(c, out);
 
   // Corona: Pegel hält sie am Leben, Anschläge setzen Streamer an die Stelle der Tonhöhe
@@ -149,7 +154,7 @@ void EclipseScene::Frame(const Features& f, const Settings& s, float dt, DrawLis
       continue;
     const float a0 = static_cast<float>(i) / Flame::kCells * kTau;
     const float a1 = (static_cast<float>(i) + 1.2f) / Flame::kCells * kTau;
-    Annulus arc = Arc(c.cx, c.cy, c.R, 3.0f, a0, a1, kGold, std::min(0.7f, e * 0.8f));
+    Annulus arc = Arc(c.cx, c.cy, c.R, 3.0f, a0, a1, pal.glow, std::min(0.7f, e * 0.8f));
     arc.hairline = false;
     out.over.push_back(arc);
   }

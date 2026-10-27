@@ -15,6 +15,7 @@ class CommandTests(unittest.TestCase):
     def test_parses_bot_arguments(self):
         self.assertEqual(parse_args([]), Command("menu"))
         self.assertEqual(parse_args(["action=on"]), Command("on"))
+        self.assertEqual(parse_args(["action=calibrate"]), Command("calibrate"))
         self.assertEqual(parse_args(["action=set", "key=intensity", "value=40"]),
                          Command("set", key="intensity", value="40"))
         self.assertEqual(parse_args(["action=set", "key=route.dust", "value="]),

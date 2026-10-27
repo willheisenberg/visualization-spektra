@@ -155,3 +155,56 @@ TEST(AudioAnalyzerTest, FineSpectrumFollowsBands)
   EXPECT_GT(fine[2], 0.2f);
   EXPECT_EQ(fine[30], 0.0f);
 }
+
+TEST(AudioAnalyzerTest, SensitivityScalesOneBand)
+{
+  const auto tone = Bins({{600.0f, 2800.0f, 0.2f}, {4000.0f, 12000.0f, 0.2f}});
+  Runner normal, muted, doubled;
+  for (Runner* r : {&normal, &muted, &doubled})
+    r->analyzer.SetIntensity(0.5f);
+  muted.analyzer.SetTuning({1.0f, 1.0f, 0.0f, 1.0f}, 1.0f, 1.0f);
+  doubled.analyzer.SetTuning({1.0f, 1.0f, 2.0f, 1.0f}, 1.0f, 1.0f);
+  for (Runner* r : {&normal, &muted, &doubled})
+    r->Run(tone, 10.0);
+  EXPECT_EQ(muted.analyzer.Current().level[kMid], 0.0f);
+  EXPECT_NEAR(doubled.analyzer.Current().level[kMid], 2.0f * normal.analyzer.Current().level[kMid], 0.02f);
+  // die übrigen Bänder bleiben unberührt
+  EXPECT_NEAR(muted.analyzer.Current().level[kHigh], normal.analyzer.Current().level[kHigh], 1e-4f);
+}
+
+TEST(AudioAnalyzerTest, LongerResponseDecaysSlower)
+{
+  const auto tone = Bins({{600.0f, 2800.0f, 0.2f}});
+  Runner quick, slow;
+  quick.analyzer.SetIntensity(1.0f);
+  slow.analyzer.SetIntensity(1.0f);
+  slow.analyzer.SetTuning({1.0f, 1.0f, 1.0f, 1.0f}, 4.0f, 1.0f);
+  for (Runner* r : {&quick, &slow})
+  {
+    r->Run(tone, 5.0);
+    r->Run(Bins({}), 0.5);
+  }
+  EXPECT_GT(slow.analyzer.Current().level[kMid], quick.analyzer.Current().level[kMid] + 0.1f);
+}
+
+TEST(AudioAnalyzerTest, HigherOnsetThresholdIgnoresSoftHits)
+{
+  // Anschläge auf 1,5-fachen Pegel: über der Standardschwelle der Mitten (1,3), unter der doppelten (1,6).
+  const auto base = Bins({{600.0f, 2800.0f, 0.1f}});
+  const auto hit = Bins({{600.0f, 2800.0f, 0.15f}});
+  auto count = [&](float threshold) {
+    Runner r;
+    r.analyzer.SetIntensity(1.0f);
+    r.analyzer.SetTuning({1.0f, 1.0f, 1.0f, 1.0f}, 1.0f, threshold);
+    r.Run(base, 3.0);
+    int onsets = 0;
+    for (int i = 0; i < 10; ++i)
+    {
+      onsets += r.Step(hit).onset[kMid] > 0.0f ? 1 : 0;
+      r.Run(base, 1.0);
+    }
+    return onsets;
+  };
+  EXPECT_GT(count(1.0f), 5);
+  EXPECT_EQ(count(2.0f), 0);
+}

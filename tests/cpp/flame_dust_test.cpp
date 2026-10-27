@@ -3,6 +3,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cmath>
 
 using namespace spektra;
@@ -134,4 +135,38 @@ TEST(DustPoolTest, ReleaseDoesNothingWithoutParticles)
   c.particles = 0.0f;
   pool.Release(c, 1.0f, 6);
   EXPECT_EQ(pool.Size(), 0u);
+}
+
+TEST(DustPoolTest, ReachScalesTheOutwardDriftOfFreeDust)
+{
+  auto travelled = [](float reach) {
+    Random rng(5);
+    DustPool pool(rng);
+    Context c;
+    c.flowStrength = 0.0f; // nur die Drift nach außen
+    c.reach = reach;
+    pool.Add({c.cx + c.R * 1.5f, c.cy, 0.0f, 0.0f, 9.0f, 9.0f, true, 1});
+    DrawList out;
+    for (int i = 0; i < 60; ++i)
+      pool.Step(c, out);
+    return pool.Grains().front().x - (c.cx + c.R * 1.5f);
+  };
+  EXPECT_GT(travelled(2.0f), 1.8f * travelled(1.0f));
+  EXPECT_LT(travelled(0.25f), 0.3f * travelled(1.0f));
+}
+
+TEST(DustPoolTest, ReachScalesTheLifeOfReleasedDust)
+{
+  auto longest = [](float reach) {
+    Random rng(5);
+    DustPool pool(rng);
+    Context c;
+    c.reach = reach;
+    pool.Release(c, 1.0f, 1);
+    float most = 0.0f;
+    for (const auto& g : pool.Grains())
+      most = std::max(most, g.max);
+    return most;
+  };
+  EXPECT_NEAR(longest(2.0f), 2.0f * longest(1.0f), 1e-3f);
 }

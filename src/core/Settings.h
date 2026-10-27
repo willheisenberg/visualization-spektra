@@ -41,7 +41,17 @@ struct Settings
   int corona = 100;
   int pixel = 2;
   bool drop = true;
+  int size = 100;         // Sonnengröße, %
+  int pulse = 100;        // wie stark die Sonne atmet und pulsiert, %
+  int palette = 0;        // 0 Feuer, 1 Eis, 2 Glut, 3 Silber
+  int flowStrength = 100; // Wirbelstärke der Strömung, %
+  int flowSpeed = 100;    // Grundtempo der Strömung, %
+  int reach = 100;        // wie weit freier Staub treibt, %
   std::array<std::array<bool, kBandCount>, kEffectCount> route{};
+  // Audio-Analyse
+  int sensBass = 100, sensLow = 100, sensMid = 100, sensHigh = 100; // Empfindlichkeit je Band, %
+  int response = 100;                                               // Nachklingen der Pegel, %
+  int onset = 100;                                                  // Schwelle für Anschläge, %
   int maxParticles = 42000;
 
   static Settings Defaults();
