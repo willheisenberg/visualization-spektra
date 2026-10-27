@@ -33,7 +33,7 @@ Array von `key=value`-Strings.
 | `maxparticles` | 10000–60000 | 42000 |
 
 Effekte: `breath` (Ring atmet), `flame` (Flammenhöhe), `corona` (Corona-Stärke), `free` (Staub löst
-sich), `flow` (Strömung & Flimmern), `wave` (Welle), `burst` (Flammenstoß rundum), `jet`
+sich), `flow` (Strömung), `wave` (Welle), `burst` (Flammenstoß rundum), `jet`
 (Stichflamme), `streamer` (Streamer + Bogen), `dust` (Staubausbruch). Bänder: `bass`, `low`, `mid`,
 `high`. Standard: breath→bass, flame→low, corona→mid, free→high, flow→high, wave→bass, burst→mid,
 jet→low, streamer→mid, dust→high.

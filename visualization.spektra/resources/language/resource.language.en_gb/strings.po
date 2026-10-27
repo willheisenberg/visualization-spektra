@@ -109,7 +109,7 @@ msgid "Dust breaks free (level)"
 msgstr ""
 
 msgctxt "#32035"
-msgid "Flow & shimmer (level)"
+msgid "Flow (level)"
 msgstr ""
 
 msgctxt "#32036"

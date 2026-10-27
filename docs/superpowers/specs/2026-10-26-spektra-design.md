@@ -149,7 +149,7 @@ Regler wirken sofort, auch auf bereits fliegende Teilchen (0 % = sofort weg).
 | Flammenhöhe | Pegel | Grundhöhe der Flamme (`0,18 + 1,2 · Pegel`) | Tiefen |
 | Corona-Stärke | Pegel | hält Corona am Leben | Mitten |
 | Staub löst sich | Pegel | Anteil losgelöster Pixel | Höhen |
-| Strömung & Flimmern | Pegel | Tempo von Strömungsfeld und Flimmerwelle | Höhen |
+| Strömung | Pegel | Tempo des Strömungsfelds | Höhen |
 | Welle | Anschlag | neue Welle, Ring schwillt an | Bass |
 | Flammenstoß rundum | Anschlag | Buckelprofil rund um den Ring | Mitten |
 | Stichflamme | Anschlag | 1–2 schmale Buckel | Tiefen |

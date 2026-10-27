@@ -70,9 +70,7 @@ void DustPool::Step(const Context& c, DrawList& out)
     p.y += p.vy * c.dt;
     const float k = 1.0f - p.life / p.max;
     const float h = p.free ? 0.35f + k * 0.6f : std::min(1.0f, (d - c.R) / (c.R * 0.9f)) * 0.75f + k * 0.25f;
-    const float shimmer = 1.0f - c.shimAmp + c.shimAmp * std::sin(u * 5.0f + v * 3.5f - c.shimT * 2.4f);
-    const float alpha =
-        (p.free ? std::min(1.0f, p.life) * 0.55f * c.particles : (1.0f - k * k) * 0.75f * c.flame) * shimmer;
+    const float alpha = p.free ? std::min(1.0f, p.life) * 0.55f * c.particles : (1.0f - k * k) * 0.75f * c.flame;
     out.dust.push_back(MakeDust(p.x, p.y, p.size, FireColor(h), alpha));
   }
 }

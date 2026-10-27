@@ -109,8 +109,8 @@ msgid "Dust breaks free (level)"
 msgstr "Staub löst sich (Pegel)"
 
 msgctxt "#32035"
-msgid "Flow & shimmer (level)"
-msgstr "Strömung & Flimmern (Pegel)"
+msgid "Flow (level)"
+msgstr "Strömung (Pegel)"
 
 msgctxt "#32036"
 msgid "Wave (hit)"

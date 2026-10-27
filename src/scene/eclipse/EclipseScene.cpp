@@ -127,13 +127,10 @@ void EclipseScene::Frame(const Features& f, const Settings& s, float dt, DrawLis
     out.under.push_back(Line(c.cx, c.cy, rr, 1.0f - 0.5f * k, tint, 0.45f * w.s * c.waves * (1.0f - k) * (1.0f - k)));
   }
 
-  // Strömung und Flimmern
+  // Strömung
   const float flowLevel = RoutedLevel(s, f, kFlow);
   m_flowT += dt * (0.4f + 1.6f * flowLevel);
-  m_shimT += dt * (1.0f + 4.0f * flowLevel);
   c.flowT = Phase(m_flowT);
-  c.shimT = Phase(m_shimT);
-  c.shimAmp = 0.15f + 0.45f * flowLevel;
   c.flowStrength = c.R * (0.3f + 0.55f * flowLevel);
   m_dust.Step(c, out);
 

@@ -65,7 +65,7 @@ From the next track on, Spektra opens the full-screen visualisation by itself.
 | **Bass** 25–120 Hz | kick, sub | ring breathing | a wave born from the ring |
 | **Lows** 120–500 Hz | bassline, groove | flame height all around | single flame jets |
 | **Mids** 500 Hz–3 kHz | melody, chords, voice | corona strength | flame burst all around, streamers and arcs where the pitch is (low notes at the bottom, high notes at the top) |
-| **Highs** 3–16 kHz | hi-hats, snares, air | dust breaking free, flow and shimmer speed | dust bursts |
+| **Highs** 3–16 kHz | hi-hats, snares, air | dust breaking free, flow speed | dust bursts |
 
 Levels are measured relative to the song itself (its own average over the last seconds), so a
 quiet ambient track looks as alive as a loud techno track.

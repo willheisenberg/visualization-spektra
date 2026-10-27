@@ -15,7 +15,7 @@ struct Context
   float cx = 640.0f, cy = 360.0f, R = 136.8f, width = 1280.0f, height = 720.0f;
   float M = 0.7f;                                                   // Musik-Intensität
   float flame = 1.0f, waves = 1.0f, particles = 1.0f, corona = 1.0f; // Elementregler 0..1
-  float flowT = 0.0f, flowStrength = 0.0f, shimT = 0.0f, shimAmp = 0.15f;
+  float flowT = 0.0f, flowStrength = 0.0f;
   int maxParticles = 42000;
 };
 

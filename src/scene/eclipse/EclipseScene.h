@@ -44,7 +44,7 @@ private:
   std::vector<Wave> m_waves;
   float m_width = 1280.0f, m_height = 720.0f;
   // Zeiten in double: die Szene lebt so lange wie Kodi, float wäre nach Tagen zu ungenau.
-  double m_t = 0.0, m_beatT = -9.0, m_flowT = 0.0, m_shimT = 0.0;
+  double m_t = 0.0, m_beatT = -9.0, m_flowT = 0.0;
 };
 
 } // namespace spektra
